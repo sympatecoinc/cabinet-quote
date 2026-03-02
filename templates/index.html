@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cabinet Quoter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#64748b'
+                    }
+                }
+            }
+        }
+        // Apply dark mode before render to prevent flash
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
+    <style>
+        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #3b82f6; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .fade-in { animation: fadeIn 0.2s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .modal { display: none; position: fixed; inset: 0; z-index: 50; }
+        .modal.active { display: flex; }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 min-h-screen transition-colors duration-200">
+    <!-- Navigation -->
+    <nav class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 transition-colors">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between h-14">
+                <div class="flex items-center space-x-6">
+                    {% if current_project %}
+                    <a href="/" class="text-lg font-bold text-gray-900 dark:text-white">{{ current_project.name }}</a>
+                    {% else %}
+                    <a href="/" class="text-lg font-bold text-gray-900 dark:text-white">Cabinet Quoter</a>
+                    {% endif %}
+                    <div class="flex space-x-1">
+                        <a href="/" class="nav-btn px-3 py-1.5 rounded text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white">Overview</a>
+                        <a href="/standard-cabinets" class="nav-btn px-3 py-1.5 rounded text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Standards</a>
+                        <a href="/templates" class="nav-btn px-3 py-1.5 rounded text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Templates</a>
+                        <a href="/config" class="nav-btn px-3 py-1.5 rounded text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Configuration</a>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    {% if current_project %}
+                    <!-- Save Status Indicator -->
+                    <div id="save-status" class="flex items-center" title="Saved">
+                        <svg id="save-check" class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <svg id="save-spinner" class="w-5 h-5 text-blue-500 animate-spin hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                    </div>
+                    <!-- Export PDF Button -->
+                    <button onclick="showPdfModal()" class="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700" title="Export PDF Quote">
+                        <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                        </svg>
+                    </button>
+                    <!-- Export CSV Button -->
+                    <a href="/api/export/csv" class="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700" title="Export to CSV">
+                        <svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                    </a>
+                    <!-- Packing List Button -->
+                    <button onclick="downloadPackingList()" class="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700" title="Download Packing List">
+                        <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                        </svg>
+                    </button>
+                    <!-- Cabinet Labels Button -->
+                    <button onclick="downloadLabels()" class="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700" title="Download Cabinet Labels">
+                        <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"></path>
+                        </svg>
+                    </button>
+                    {% endif %}
+                    <a href="/settings" class="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700" title="Settings">
+                        <svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-6">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                {% if not current_project %}
+                <p class="text-sm text-gray-500 dark:text-gray-400">No project loaded</p>
+                {% endif %}
+            </div>
+            <button onclick="showAddModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">
+                + Add Item
+            </button>
+        </div>
+
+        <!-- Totals Summary -->
+        {% if cabinets %}
+        <div id="totals-section" class="grid grid-cols-5 gap-4 mb-6">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+                <div class="text-sm text-gray-500 dark:text-gray-400">Material Cost</div>
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">${{ "%.2f"|format(totals.material) }}</div>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+                <div class="text-sm text-gray-500 dark:text-gray-400">Hardware Cost</div>
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">${{ "%.2f"|format(totals.hardware) }}</div>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+                <div class="text-sm text-gray-500 dark:text-gray-400">Edgebanding</div>
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">${{ "%.2f"|format(totals.edgebanding) }}</div>
+            </div>
+            <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-4">
+                <div class="text-sm text-blue-600 dark:text-blue-400">Total Cost</div>
+                <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">${{ "%.2f"|format(totals.total) }}</div>
+            </div>
+            <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-4">
+                <div class="text-sm text-green-600 dark:text-green-400">Sale Price</div>
+                <div class="text-2xl font-bold text-green-600 dark:text-green-400">${{ "%.2f"|format(totals.marked_up.total) }}</div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Quick Add Section -->
+        <div id="quick-add-section" class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-6">
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Quick Add Items</h3>
+            <div class="flex space-x-2">
+                <textarea id="quick-codes" class="flex-1 p-2 border dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400" rows="2" placeholder="Enter cabinet codes (one per line): W1530, BC24, DB12, TC1596..."></textarea>
+                <button onclick="quickAddCabinets()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium whitespace-nowrap">
+                    Add All
+                </button>
+            </div>
+        </div>
+
+        <!-- Cabinets Table -->
+        {% if cabinets %}
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Code</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Type</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Dimensions</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Qty</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Material</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Hardware</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Total</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for cab in cabinets %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{{ cab.code }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{{ cab.type }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{{ cab.width }}" x {{ cab.height }}" x {{ cab.depth }}"</td>
+                        <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{{ cab.quantity }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 text-right">${{ "%.2f"|format(cab.material_cost) }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 text-right">${{ "%.2f"|format(cab.hardware_cost) }}</td>
+                        <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white text-right">${{ "%.2f"|format(cab.total_cost) }}</td>
+                        <td class="px-4 py-3 text-sm text-right">
+                            <button onclick="editCabinet('{{ cab.id }}')" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 mr-2">Edit</button>
+                            <button onclick="deleteCabinet('{{ cab.id }}')" class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">Delete</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center">
+            <p class="text-gray-500 dark:text-gray-400 mb-2">No cabinets in this project yet.</p>
+            <p class="text-sm text-gray-400 dark:text-gray-500">Use the "Add Item" button or quick add codes above.</p>
+        </div>
+        {% endif %}
+    </main>
+
+    <!-- Add/Edit Cabinet Modal -->
+    <div id="cabinet-modal" class="modal items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 id="modal-title" class="text-xl font-bold text-gray-900 dark:text-white">Add Item</h2>
+                    <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <form id="cabinet-form" onsubmit="saveCabinet(event)">
+                    <input type="hidden" id="cabinet-id" value="">
+
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Code</label>
+                            <input type="text" id="cab-code" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" placeholder="e.g., W1530">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
+                            <select id="cab-type" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" onchange="updateDefaults()">
+                                <option value="Wall Cabinets">Wall Cabinet</option>
+                                <option value="Base Cabinets">Base Cabinet</option>
+                                <option value="Open Base Cabinets">Open Base Cabinet</option>
+                                <option value="Drawer Cabinets">Drawer Cabinet</option>
+                                <option value="Tall Cabinets">Tall Cabinet</option>
+                                <option value="Sink Base Cabinets">Sink Base Cabinet</option>
+                                <option value="Pull Out Trashcan">Pull Out Trashcan</option>
+                                <option value="Appliance Panel">Appliance Panel</option>
+                                <option value="Hardware">Hardware Item</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Appliance Panel Sides (hidden by default) -->
+                    <div id="panel-sides-row" class="mb-4 hidden">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Number of Sides</label>
+                        <select id="cab-panel-sides" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" onchange="updatePanelFields()">
+                            <option value="1">1 Side (Height x Depth only)</option>
+                            <option value="2">2 Sides (L-shape, requires Width)</option>
+                            <option value="3">3 Sides (U-shape, requires Width)</option>
+                        </select>
+                    </div>
+
+                    <!-- Hardware Item Fields (hidden by default) -->
+                    <div id="hardware-fields-row" class="mb-4 hidden">
+                        <div class="grid grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Hardware Name</label>
+                                <input type="text" id="cab-hardware-name" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" placeholder="e.g., Drawer Pulls, Hinges">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unit Cost ($)</label>
+                                <input type="number" id="cab-hardware-cost" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.01" min="0" placeholder="0.00">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Quantity</label>
+                                <input type="number" id="cab-hardware-qty" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" min="1" value="1">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="dimensions-row" class="grid grid-cols-4 gap-4 mb-4">
+                        <div id="cab-width-container">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Width</label>
+                            <input type="number" id="cab-width" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.125" value="24">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Height</label>
+                            <input type="number" id="cab-height" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.125" value="30">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Depth</label>
+                            <input type="number" id="cab-depth" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.125" value="12">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Quantity</label>
+                            <input type="number" id="cab-qty" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" min="1" value="1">
+                        </div>
+                    </div>
+
+                    <div id="cabinet-options-row" class="grid grid-cols-3 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Doors</label>
+                            <input type="number" id="cab-num-doors" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" min="0" value="1">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Drawers</label>
+                            <input type="number" id="cab-num-drawers" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" min="0" value="0">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Shelves</label>
+                            <input type="number" id="cab-num-shelves" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" min="0" value="0">
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Edgebanding</label>
+                        <select id="cab-edgebanding" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                            <option value="0.5mm PVC">0.5mm PVC</option>
+                            <option value="1.0mm PVC" selected>1.0mm PVC</option>
+                            <option value="2.0mm PVC">2.0mm PVC</option>
+                        </select>
+                    </div>
+
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" onclick="closeModal()" class="px-4 py-2 border dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            Save Cabinet
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-20 right-4 bg-gray-800 dark:bg-gray-700 text-white px-4 py-2 rounded-lg shadow-lg hidden z-40"></div>
+
+    <!-- AI Assistant Chat Bubble -->
+    <div id="ai-chat-container" class="fixed bottom-4 right-4 z-50">
+        <!-- Chat Panel (hidden by default) -->
+        <div id="ai-chat-panel" class="hidden mb-3 w-80 sm:w-96 bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col" style="height: 450px;">
+            <!-- Header -->
+            <div class="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700 bg-blue-600 rounded-t-lg">
+                <div class="flex items-center space-x-2">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                    </svg>
+                    <span class="font-semibold text-white text-sm">AI Assistant</span>
+                </div>
+                <button onclick="toggleAIChat()" class="text-white hover:text-gray-200">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <!-- Context Indicator -->
+            <div class="px-3 py-2 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600 text-xs text-gray-500 dark:text-gray-400">
+                <span class="font-medium">Context:</span> {% if current_project %}{{ current_project.name }}{% else %}No project loaded{% endif %}
+            </div>
+            <!-- Messages -->
+            <div id="ai-chat-messages" class="flex-1 overflow-y-auto p-3 space-y-3">
+                <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-3 text-sm text-gray-700 dark:text-gray-300">
+                    <p class="font-medium text-blue-700 dark:text-blue-300 mb-1">Hi! I can help you with:</p>
+                    <ul class="list-disc list-inside space-y-1 text-xs">
+                        <li>"What templates are available?"</li>
+                        <li>"What standard cabinets exist?"</li>
+                    </ul>
+                    <p class="text-xs mt-2 text-gray-500 dark:text-gray-400">For multi unit projects, use the project view to add units and cabinets.</p>
+                </div>
+            </div>
+            <!-- Input -->
+            <div class="p-3 border-t border-gray-200 dark:border-gray-700">
+                <form onsubmit="sendAIMessage(event)" class="flex space-x-2">
+                    <input type="text" id="ai-chat-input" class="flex-1 p-2 text-sm border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400" placeholder="Type a command...">
+                    <button type="submit" id="ai-send-btn" class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                        </svg>
+                    </button>
+                </form>
+            </div>
+        </div>
+        <!-- Toggle Button -->
+        <button onclick="toggleAIChat()" id="ai-chat-toggle" class="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105">
+            <svg id="ai-chat-icon-open" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
+            </svg>
+            <svg id="ai-chat-icon-close" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" class="modal items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-sm mx-4 p-6">
+            <div class="flex items-center mb-4">
+                <div class="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mr-3">
+                    <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Delete Cabinet</h3>
+            </div>
+            <p class="text-gray-600 dark:text-gray-300 mb-6">Are you sure you want to delete this cabinet? This action cannot be undone.</p>
+            <div class="flex justify-end space-x-3">
+                <button onclick="closeDeleteModal()" class="px-4 py-2 border dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    Cancel
+                </button>
+                <button onclick="confirmDelete()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PDF Quote Modal -->
+    <div id="pdf-modal" class="modal items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md mx-4 p-6">
+            <div class="flex items-center mb-4">
+                <div class="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mr-3">
+                    <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Generate PDF Quote</h3>
+            </div>
+            <p class="text-gray-600 dark:text-gray-300 mb-4 text-sm">Company and customer info are pulled from <a href="/config" class="text-blue-600 dark:text-blue-400 hover:underline">Settings</a>.</p>
+            <form id="pdf-form" onsubmit="generatePdf(event)">
+                <!-- Tax & Shipping -->
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tax Rate (%)</label>
+                        <input type="number" id="pdf-tax" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.01" min="0" value="0" placeholder="0">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Shipping ($)</label>
+                        <input type="number" id="pdf-shipping" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.01" min="0" value="0" placeholder="0">
+                    </div>
+                </div>
+                <!-- Notes -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes (optional)</label>
+                    <textarea id="pdf-notes" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm" rows="2" placeholder="Payment terms, lead time, etc."></textarea>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closePdfModal()" class="px-4 py-2 border dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                        Download PDF
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Initialize preferences on page load
+        function initPreferences() {
+            const quickAddHidden = localStorage.getItem('quickAddHidden') === 'true';
+            const quickAddSection = document.getElementById('quick-add-section');
+            if (quickAddHidden && quickAddSection) {
+                quickAddSection.classList.add('hidden');
+            }
+
+            const totalsHidden = localStorage.getItem('totalsHidden') === 'true';
+            const totalsSection = document.getElementById('totals-section');
+            if (totalsHidden && totalsSection) {
+                totalsSection.classList.add('hidden');
+            }
+        }
+
+        // Save Status Functions
+        function setSaveStatus(status) {
+            const checkIcon = document.getElementById('save-check');
+            const spinnerIcon = document.getElementById('save-spinner');
+            const statusDiv = document.getElementById('save-status');
+
+            if (!checkIcon || !spinnerIcon || !statusDiv) return;
+
+            if (status === 'saving') {
+                checkIcon.classList.add('hidden');
+                spinnerIcon.classList.remove('hidden');
+                statusDiv.title = 'Saving...';
+            } else if (status === 'saved') {
+                spinnerIcon.classList.add('hidden');
+                checkIcon.classList.remove('hidden');
+                statusDiv.title = 'Saved';
+            }
+        }
+
+        // Autosave function
+        async function autoSave() {
+            {% if current_project %}
+            setSaveStatus('saving');
+            try {
+                const response = await fetch('/api/project/{{ current_project.id }}', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                const result = await response.json();
+                setSaveStatus('saved');
+            } catch (error) {
+                setSaveStatus('saved');
+                console.error('Autosave failed:', error);
+            }
+            {% endif %}
+        }
+
+        // Toast notification
+        function showToast(message, duration = 3000) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), duration);
+        }
+
+        // Modal functions
+        function showAddModal() {
+            document.getElementById('modal-title').textContent = 'Add Item';
+            document.getElementById('cabinet-id').value = '';
+            document.getElementById('cabinet-form').reset();
+            updateDefaults();
+            document.getElementById('cabinet-modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('cabinet-modal').classList.remove('active');
+        }
+
+        function updatePanelFields() {
+            // Width field always visible and enabled for Appliance Panels
+            // Users need to specify panel dimensions regardless of number of sides
+            const widthContainer = document.getElementById('cab-width-container');
+            const widthInput = document.getElementById('cab-width');
+            widthContainer.classList.remove('opacity-50');
+            widthInput.disabled = false;
+        }
+
+        function updateDefaults() {
+            const type = document.getElementById('cab-type').value;
+            const defaults = {
+                'Wall Cabinets': { depth: 12, height: 30, numDoors: 1, numDrawers: 0, numShelves: 0, allowDoors: true, allowDrawers: false },
+                'Base Cabinets': { depth: 24, height: 35, numDoors: 1, numDrawers: 0, numShelves: 0, allowDoors: true, allowDrawers: true },
+                'Open Base Cabinets': { depth: 24, height: 35, numDoors: 0, numDrawers: 0, numShelves: 1, allowDoors: false, allowDrawers: false },
+                'Drawer Cabinets': { depth: 24, height: 35, numDoors: 0, numDrawers: 4, numShelves: 0, allowDoors: false, allowDrawers: true },
+                'Tall Cabinets': { depth: 24, height: 96, numDoors: 1, numDrawers: 0, numShelves: 0, allowDoors: true, allowDrawers: true },
+                'Sink Base Cabinets': { depth: 24, height: 34.5, numDoors: 1, numDrawers: 0, numShelves: 0, allowDoors: true, allowDrawers: false },
+                'Pull Out Trashcan': { depth: 24, height: 35, numDoors: 0, numDrawers: 0, numShelves: 0, allowDoors: false, allowDrawers: false },
+                'Appliance Panel': { depth: 24, height: 35, numDoors: 0, numDrawers: 0, numShelves: 0, allowDoors: false, allowDrawers: false },
+                'Hardware': { depth: 0, height: 0, numDoors: 0, numDrawers: 0, numShelves: 0, allowDoors: false, allowDrawers: false }
+            };
+
+            const d = defaults[type] || {};
+            document.getElementById('cab-depth').value = d.depth || 24;
+            document.getElementById('cab-height').value = d.height || 30;
+            document.getElementById('cab-num-doors').value = d.numDoors ?? 1;
+            document.getElementById('cab-num-drawers').value = d.numDrawers ?? 0;
+            document.getElementById('cab-num-shelves').value = d.numShelves ?? 1;
+
+            // Get all conditional elements
+            const panelSidesRow = document.getElementById('panel-sides-row');
+            const hardwareFieldsRow = document.getElementById('hardware-fields-row');
+            const dimensionsRow = document.getElementById('dimensions-row');
+            const cabinetOptionsRow = document.getElementById('cabinet-options-row');
+            const edgebandingRow = document.getElementById('cab-edgebanding').parentElement;
+            const widthContainer = document.getElementById('cab-width-container');
+            const widthInput = document.getElementById('cab-width');
+
+            // Hide all special rows first
+            panelSidesRow.classList.add('hidden');
+            hardwareFieldsRow.classList.add('hidden');
+
+            if (type === 'Hardware') {
+                // Show hardware fields, hide cabinet fields
+                hardwareFieldsRow.classList.remove('hidden');
+                dimensionsRow.classList.add('hidden');
+                cabinetOptionsRow.classList.add('hidden');
+                edgebandingRow.classList.add('hidden');
+            } else if (type === 'Appliance Panel') {
+                panelSidesRow.classList.remove('hidden');
+                dimensionsRow.classList.remove('hidden');
+                cabinetOptionsRow.classList.add('hidden');
+                edgebandingRow.classList.remove('hidden');
+                document.getElementById('cab-panel-sides').value = '1';
+                updatePanelFields();
+            } else {
+                // Normal cabinet
+                dimensionsRow.classList.remove('hidden');
+                cabinetOptionsRow.classList.remove('hidden');
+                edgebandingRow.classList.remove('hidden');
+                widthContainer.classList.remove('opacity-50');
+                widthInput.disabled = false;
+            }
+
+            // Disable doors for cabinet types that don't support them
+            const doorsInput = document.getElementById('cab-num-doors');
+            if (d.allowDoors === false) {
+                doorsInput.disabled = true;
+                doorsInput.value = 0;
+                doorsInput.classList.add('opacity-50');
+            } else {
+                doorsInput.disabled = false;
+                doorsInput.classList.remove('opacity-50');
+            }
+
+            // Disable drawers for cabinet types that don't support them
+            const drawersInput = document.getElementById('cab-num-drawers');
+            if (d.allowDrawers === false) {
+                drawersInput.disabled = true;
+                drawersInput.value = 0;
+                drawersInput.classList.add('opacity-50');
+            } else {
+                drawersInput.disabled = false;
+                drawersInput.classList.remove('opacity-50');
+            }
+        }
+
+        // API calls
+        async function saveCabinet(e) {
+            e.preventDefault();
+
+            const cabinetId = document.getElementById('cabinet-id').value;
+            const numDoors = parseInt(document.getElementById('cab-num-doors').value) || 0;
+            const numDrawers = parseInt(document.getElementById('cab-num-drawers').value) || 0;
+            const numShelves = parseInt(document.getElementById('cab-num-shelves').value) || 0;
+
+            const cabinetType = document.getElementById('cab-type').value;
+            const panelSides = cabinetType === 'Appliance Panel' ? parseInt(document.getElementById('cab-panel-sides').value) : 1;
+
+            let data;
+            if (cabinetType === 'Hardware') {
+                // Hardware item - simplified data
+                data = {
+                    code: document.getElementById('cab-code').value,
+                    type: cabinetType,
+                    hardware_name: document.getElementById('cab-hardware-name').value,
+                    hardware_cost: parseFloat(document.getElementById('cab-hardware-cost').value) || 0,
+                    quantity: parseInt(document.getElementById('cab-hardware-qty').value) || 1,
+                    width: 0,
+                    height: 0,
+                    depth: 0,
+                    has_doors: false,
+                    num_doors: 0,
+                    has_drawers: false,
+                    num_drawers: 0,
+                    has_shelves: false,
+                    num_shelves: 0,
+                    edgebanding_type: 'None',
+                    panel_sides: 0
+                };
+            } else {
+                data = {
+                    code: document.getElementById('cab-code').value,
+                    type: cabinetType,
+                    width: parseFloat(document.getElementById('cab-width').value),
+                    height: parseFloat(document.getElementById('cab-height').value),
+                    depth: parseFloat(document.getElementById('cab-depth').value),
+                    quantity: parseInt(document.getElementById('cab-qty').value),
+                    has_doors: numDoors > 0,
+                    num_doors: numDoors,
+                    has_drawers: numDrawers > 0,
+                    num_drawers: numDrawers,
+                    has_shelves: numShelves > 0,
+                    num_shelves: numShelves,
+                    edgebanding_type: document.getElementById('cab-edgebanding').value,
+                    panel_sides: panelSides
+                };
+            }
+
+            const url = cabinetId ? `/api/cabinet/${cabinetId}` : '/api/cabinet';
+            const method = cabinetId ? 'PUT' : 'POST';
+
+            const response = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                showToast(cabinetId ? 'Cabinet updated!' : 'Cabinet added!');
+                closeModal();
+                await autoSave();
+                location.reload();
+            } else {
+                showToast('Error: ' + (result.error || 'Unknown error'));
+            }
+        }
+
+        async function editCabinet(id) {
+            // Fetch cabinet data and populate form
+            const response = await fetch('/api/cabinets');
+            const cabinets = await response.json();
+            const cab = cabinets.find(c => c.id === id);
+
+            if (cab) {
+                document.getElementById('modal-title').textContent = 'Edit Cabinet';
+                document.getElementById('cabinet-id').value = cab.id;
+                document.getElementById('cab-code').value = cab.code;
+                document.getElementById('cab-type').value = cab.type;
+
+                // Get all conditional elements
+                const panelSidesRow = document.getElementById('panel-sides-row');
+                const hardwareFieldsRow = document.getElementById('hardware-fields-row');
+                const dimensionsRow = document.getElementById('dimensions-row');
+                const cabinetOptionsRow = document.getElementById('cabinet-options-row');
+                const edgebandingRow = document.getElementById('cab-edgebanding').parentElement;
+                const widthContainer = document.getElementById('cab-width-container');
+                const widthInput = document.getElementById('cab-width');
+
+                // Hide all special rows first
+                panelSidesRow.classList.add('hidden');
+                hardwareFieldsRow.classList.add('hidden');
+
+                if (cab.type === 'Hardware') {
+                    // Show hardware fields, hide cabinet fields
+                    hardwareFieldsRow.classList.remove('hidden');
+                    dimensionsRow.classList.add('hidden');
+                    cabinetOptionsRow.classList.add('hidden');
+                    edgebandingRow.classList.add('hidden');
+                    document.getElementById('cab-hardware-name').value = cab.hardware_name || '';
+                    document.getElementById('cab-hardware-cost').value = cab.hardware_cost || 0;
+                    document.getElementById('cab-hardware-qty').value = cab.quantity || 1;
+                } else if (cab.type === 'Appliance Panel') {
+                    panelSidesRow.classList.remove('hidden');
+                    dimensionsRow.classList.remove('hidden');
+                    cabinetOptionsRow.classList.add('hidden');
+                    edgebandingRow.classList.remove('hidden');
+                    document.getElementById('cab-panel-sides').value = cab.panel_sides || 1;
+                    document.getElementById('cab-width').value = cab.width;
+                    document.getElementById('cab-height').value = cab.height;
+                    document.getElementById('cab-depth').value = cab.depth;
+                    document.getElementById('cab-qty').value = cab.quantity;
+                    document.getElementById('cab-edgebanding').value = cab.edgebanding_type || '1.0mm PVC';
+                    updatePanelFields();
+                } else {
+                    // Normal cabinet
+                    dimensionsRow.classList.remove('hidden');
+                    cabinetOptionsRow.classList.remove('hidden');
+                    edgebandingRow.classList.remove('hidden');
+                    widthContainer.classList.remove('opacity-50');
+                    widthInput.disabled = false;
+                    document.getElementById('cab-width').value = cab.width;
+                    document.getElementById('cab-height').value = cab.height;
+                    document.getElementById('cab-depth').value = cab.depth;
+                    document.getElementById('cab-qty').value = cab.quantity;
+                    document.getElementById('cab-num-doors').value = cab.num_doors || 0;
+                    document.getElementById('cab-num-drawers').value = cab.num_drawers || 0;
+                    document.getElementById('cab-num-shelves').value = cab.num_shelves || 0;
+                    document.getElementById('cab-edgebanding').value = cab.edgebanding_type || '1.0mm PVC';
+                }
+
+                // Disable drawers for cabinet types that don't support them
+                const noDrawerTypes = ['Wall Cabinets', 'Sink Base Cabinets', 'Pull Out Trashcan', 'Appliance Panel', 'Hardware'];
+                const drawersInput = document.getElementById('cab-num-drawers');
+                if (noDrawerTypes.includes(cab.type)) {
+                    drawersInput.disabled = true;
+                    drawersInput.classList.add('opacity-50');
+                } else {
+                    drawersInput.disabled = false;
+                    drawersInput.classList.remove('opacity-50');
+                }
+
+                document.getElementById('cabinet-modal').classList.add('active');
+            }
+        }
+
+        let pendingDeleteId = null;
+
+        function deleteCabinet(id) {
+            pendingDeleteId = id;
+            document.getElementById('delete-modal').classList.add('active');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('delete-modal').classList.remove('active');
+            pendingDeleteId = null;
+        }
+
+        async function confirmDelete() {
+            if (!pendingDeleteId) return;
+
+            const response = await fetch(`/api/cabinet/${pendingDeleteId}`, { method: 'DELETE' });
+            const result = await response.json();
+
+            closeDeleteModal();
+
+            if (result.success) {
+                showToast('Cabinet deleted');
+                await autoSave();
+                location.reload();
+            }
+        }
+
+        async function quickAddCabinets() {
+            const codes = document.getElementById('quick-codes').value;
+            if (!codes.trim()) {
+                showToast('Enter cabinet codes first');
+                return;
+            }
+
+            const response = await fetch('/api/cabinets/quick-add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ codes })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                const msg = `Added ${result.added.length} cabinet(s)` +
+                    (result.errors.length ? `. Invalid: ${result.errors.join(', ')}` : '');
+                showToast(msg);
+                document.getElementById('quick-codes').value = '';
+                await autoSave();
+                location.reload();
+            }
+        }
+
+        async function saveProject() {
+            {% if current_project %}
+            setSaveStatus('saving');
+            const response = await fetch('/api/project/{{ current_project.id }}', { method: 'PUT' });
+            const result = await response.json();
+            setSaveStatus('saved');
+            showToast(result.success ? 'Project saved!' : 'Save failed');
+            {% else %}
+            showToast('No project loaded');
+            {% endif %}
+        }
+
+        // PDF Quote Modal Functions
+        function showPdfModal() {
+            document.getElementById('pdf-modal').classList.add('active');
+        }
+
+        function closePdfModal() {
+            document.getElementById('pdf-modal').classList.remove('active');
+        }
+
+        async function generatePdf(e) {
+            e.preventDefault();
+
+            // Company info is now fetched from database on backend
+            const taxRate = parseFloat(document.getElementById('pdf-tax').value) || 0;
+            const shipping = parseFloat(document.getElementById('pdf-shipping').value) || 0;
+            const notes = document.getElementById('pdf-notes').value.trim();
+
+            try {
+                const response = await fetch('/api/export/pdf', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        tax_rate: taxRate,
+                        shipping: shipping,
+                        notes: notes
+                    })
+                });
+
+                if (response.ok) {
+                    // Download the PDF
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    // Get filename from Content-Disposition header or use default
+                    const contentDisposition = response.headers.get('Content-Disposition');
+                    let filename = 'quote.pdf';
+                    if (contentDisposition) {
+                        const match = contentDisposition.match(/filename="?([^"]+)"?/);
+                        if (match) filename = match[1];
+                    }
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    closePdfModal();
+                    showToast('PDF downloaded!');
+                } else {
+                    showToast('Error generating PDF');
+                }
+            } catch (error) {
+                showToast('Error generating PDF');
+                console.error('PDF error:', error);
+            }
+        }
+
+        async function downloadPackingList() {
+            try {
+                const response = await fetch('/api/export/packing-list', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    const contentDisposition = response.headers.get('Content-Disposition');
+                    let filename = 'packing-list.pdf';
+                    if (contentDisposition) {
+                        const match = contentDisposition.match(/filename="?([^"]+)"?/);
+                        if (match) filename = match[1];
+                    }
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    showToast('Packing list downloaded!');
+                } else {
+                    const error = await response.json();
+                    showToast(error.error || 'Error generating packing list');
+                }
+            } catch (error) {
+                showToast('Error generating packing list');
+                console.error('Packing list error:', error);
+            }
+        }
+
+        async function downloadLabels() {
+            try {
+                const response = await fetch('/api/export/labels', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    const contentDisposition = response.headers.get('Content-Disposition');
+                    let filename = 'cabinet-labels.pdf';
+                    if (contentDisposition) {
+                        const match = contentDisposition.match(/filename="?([^"]+)"?/);
+                        if (match) filename = match[1];
+                    }
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    showToast('Cabinet labels downloaded!');
+                } else {
+                    const error = await response.json();
+                    showToast(error.error || 'Error generating labels');
+                }
+            } catch (error) {
+                showToast('Error generating labels');
+                console.error('Labels error:', error);
+            }
+        }
+
+        // Initialize
+        updateDefaults();
+        initPreferences();
+
+        // =====================
+        // AI Chat Functions
+        // =====================
+        let aiChatOpen = false;
+
+        function toggleAIChat() {
+            aiChatOpen = !aiChatOpen;
+            const panel = document.getElementById('ai-chat-panel');
+            const iconOpen = document.getElementById('ai-chat-icon-open');
+            const iconClose = document.getElementById('ai-chat-icon-close');
+
+            if (aiChatOpen) {
+                panel.classList.remove('hidden');
+                iconOpen.classList.add('hidden');
+                iconClose.classList.remove('hidden');
+                document.getElementById('ai-chat-input').focus();
+            } else {
+                panel.classList.add('hidden');
+                iconOpen.classList.remove('hidden');
+                iconClose.classList.add('hidden');
+            }
+        }
+
+        function addChatMessage(content, isUser = false, isError = false) {
+            const messagesDiv = document.getElementById('ai-chat-messages');
+            const msgDiv = document.createElement('div');
+
+            if (isUser) {
+                msgDiv.className = 'flex justify-end';
+                msgDiv.innerHTML = `<div class="bg-blue-600 text-white rounded-lg px-3 py-2 text-sm max-w-[80%]">${escapeHtml(content)}</div>`;
+            } else if (isError) {
+                msgDiv.className = 'flex justify-start';
+                msgDiv.innerHTML = `<div class="bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg px-3 py-2 text-sm max-w-[80%]">${escapeHtml(content)}</div>`;
+            } else {
+                msgDiv.className = 'flex justify-start';
+                msgDiv.innerHTML = `<div class="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-2 text-sm max-w-[80%] whitespace-pre-wrap">${escapeHtml(content)}</div>`;
+            }
+
+            messagesDiv.appendChild(msgDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function addTypingIndicator() {
+            const messagesDiv = document.getElementById('ai-chat-messages');
+            const typingDiv = document.createElement('div');
+            typingDiv.id = 'ai-typing-indicator';
+            typingDiv.className = 'flex justify-start';
+            typingDiv.innerHTML = `
+                <div class="bg-gray-100 dark:bg-gray-700 rounded-lg px-4 py-2 text-sm">
+                    <div class="flex space-x-1">
+                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0ms;"></div>
+                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 150ms;"></div>
+                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 300ms;"></div>
+                    </div>
+                </div>
+            `;
+            messagesDiv.appendChild(typingDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const indicator = document.getElementById('ai-typing-indicator');
+            if (indicator) indicator.remove();
+        }
+
+        async function sendAIMessage(e) {
+            e.preventDefault();
+            const input = document.getElementById('ai-chat-input');
+            const sendBtn = document.getElementById('ai-send-btn');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            // Add user message to chat
+            addChatMessage(message, true);
+            input.value = '';
+
+            // Disable input while processing
+            input.disabled = true;
+            sendBtn.disabled = true;
+            addTypingIndicator();
+
+            try {
+                const response = await fetch('/api/ai/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: message,
+                        context: {
+                            page: 'project',
+                            project_id: {% if current_project %}{{ current_project.id }}{% else %}null{% endif %}
+                        }
+                    })
+                });
+
+                const result = await response.json();
+                removeTypingIndicator();
+
+                if (result.success) {
+                    addChatMessage(result.message);
+
+                    // If action was taken, refresh the page
+                    if (result.needs_refresh) {
+                        setTimeout(() => {
+                            showToast('Updating...');
+                            location.reload();
+                        }, 1000);
+                    }
+                } else {
+                    addChatMessage(result.message || 'Something went wrong', false, true);
+                }
+            } catch (error) {
+                removeTypingIndicator();
+                addChatMessage('Could not connect to AI assistant. Is Ollama running?', false, true);
+                console.error('AI chat error:', error);
+            } finally {
+                input.disabled = false;
+                sendBtn.disabled = false;
+                input.focus();
+            }
+        }
+
+        // Load chat state from localStorage
+        function loadChatState() {
+            const savedOpen = localStorage.getItem('aiChatOpen') === 'true';
+            if (savedOpen) {
+                toggleAIChat();
+            }
+        }
+
+        // Save chat state when toggling
+        const originalToggle = toggleAIChat;
+        toggleAIChat = function() {
+            originalToggle();
+            localStorage.setItem('aiChatOpen', aiChatOpen);
+        };
+
+        // Initialize chat
+        loadChatState();
+    </script>
+</body>
+</html>

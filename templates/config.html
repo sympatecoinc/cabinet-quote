@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuration - Cabinet Quoter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { colors: { primary: '#3b82f6', secondary: '#64748b' } } }
+        }
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 min-h-screen transition-colors">
+    <!-- Navigation -->
+    <nav class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 transition-colors">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between h-14">
+                <div class="flex items-center space-x-6">
+                    {% if current_project %}
+                    <a href="/complex/{{ current_project.id }}" class="text-lg font-bold text-gray-900 dark:text-white">{{ current_project.name }}</a>
+                    {% else %}
+                    <a href="/" class="text-lg font-bold text-gray-900 dark:text-white">Cabinet Quoter</a>
+                    {% endif %}
+                    <div class="flex space-x-1">
+                        <a href="{% if current_project %}/complex/{{ current_project.id }}{% else %}/{% endif %}" class="nav-btn px-3 py-1.5 rounded text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Overview</a>
+                        <a href="/standard-cabinets" class="nav-btn px-3 py-1.5 rounded text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Standards</a>
+                        <a href="/templates" class="nav-btn px-3 py-1.5 rounded text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Templates</a>
+                        <a href="/config" class="nav-btn px-3 py-1.5 rounded text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white">Configuration</a>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <a href="/settings" class="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700" title="Settings">
+                        <svg class="w-5 h-5 text-gray-900 dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-6">
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Configuration</h1>
+                {% if current_project %}
+                <p class="text-sm text-gray-500 dark:text-gray-400">Editing settings for: <span class="font-medium text-gray-700 dark:text-gray-300">{{ current_project.name }}</span></p>
+                {% else %}
+                <p class="text-sm text-yellow-600 dark:text-yellow-400">No project loaded - settings will be temporary</p>
+                {% endif %}
+            </div>
+            <!-- Save Status Indicator -->
+            <div id="save-status" class="flex items-center space-x-2">
+                <svg id="save-check" class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <svg id="save-spinner" class="w-5 h-5 text-blue-500 animate-spin hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                <span id="save-text" class="text-sm text-gray-500 dark:text-gray-400">Saved</span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-6">
+            <!-- Material Costs -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Material Costs (per sq ft)</h2>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <label class="text-sm text-gray-700 dark:text-gray-300">Primary Substrate</label>
+                        <div class="flex items-center">
+                            <span class="text-gray-500 dark:text-gray-400 mr-1">$</span>
+                            <input type="number" id="cost-primary" class="w-20 p-2 border dark:border-gray-600 rounded text-right bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.01" value="{{ "%.2f"|format(calc_params.material_costs['Primary Substrate']) }}">
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <label class="text-sm text-gray-700 dark:text-gray-300">Back Panel</label>
+                        <div class="flex items-center">
+                            <span class="text-gray-500 dark:text-gray-400 mr-1">$</span>
+                            <input type="number" id="cost-back" class="w-20 p-2 border dark:border-gray-600 rounded text-right bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.01" value="{{ "%.2f"|format(calc_params.material_costs['Back Panel']) }}">
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <label class="text-sm text-gray-700 dark:text-gray-300">Drawer Material</label>
+                        <div class="flex items-center">
+                            <span class="text-gray-500 dark:text-gray-400 mr-1">$</span>
+                            <input type="number" id="cost-drawer" class="w-20 p-2 border dark:border-gray-600 rounded text-right bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.01" value="{{ "%.2f"|format(calc_params.material_costs['Drawer Material']) }}">
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <label class="text-sm text-gray-700 dark:text-gray-300">Door/Drawer Fronts</label>
+                        <div class="flex items-center">
+                            <span class="text-gray-500 dark:text-gray-400 mr-1">$</span>
+                            <input type="number" id="cost-fronts" class="w-20 p-2 border dark:border-gray-600 rounded text-right bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.01" value="{{ "%.2f"|format(calc_params.material_costs['Door/Drawer Fronts']) }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hardware Costs -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Hardware Costs (per unit)</h2>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <label class="text-sm text-gray-700 dark:text-gray-300">Hinge</label>
+                        <div class="flex items-center">
+                            <span class="text-gray-500 dark:text-gray-400 mr-1">$</span>
+                            <input type="number" id="hw-hinge" class="w-20 p-2 border dark:border-gray-600 rounded text-right bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.01" value="{{ "%.2f"|format(calc_params.hardware_costs['Hinge']) }}">
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <label class="text-sm text-gray-700 dark:text-gray-300">Handle</label>
+                        <div class="flex items-center">
+                            <span class="text-gray-500 dark:text-gray-400 mr-1">$</span>
+                            <input type="number" id="hw-handle" class="w-20 p-2 border dark:border-gray-600 rounded text-right bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.01" value="{{ "%.2f"|format(calc_params.hardware_costs['Handle']) }}">
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <label class="text-sm text-gray-700 dark:text-gray-300">Drawer Pull</label>
+                        <div class="flex items-center">
+                            <span class="text-gray-500 dark:text-gray-400 mr-1">$</span>
+                            <input type="number" id="hw-pull" class="w-20 p-2 border dark:border-gray-600 rounded text-right bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.01" value="{{ "%.2f"|format(calc_params.hardware_costs['Drawer Pull']) }}">
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <label class="text-sm text-gray-700 dark:text-gray-300">Drawer Slide</label>
+                        <div class="flex items-center">
+                            <span class="text-gray-500 dark:text-gray-400 mr-1">$</span>
+                            <input type="number" id="hw-slide" class="w-20 p-2 border dark:border-gray-600 rounded text-right bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.01" value="{{ "%.2f"|format(calc_params.hardware_costs['Drawer Slide']) }}">
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <label class="text-sm text-gray-700 dark:text-gray-300">Shelf Pin</label>
+                        <div class="flex items-center">
+                            <span class="text-gray-500 dark:text-gray-400 mr-1">$</span>
+                            <input type="number" id="hw-pin" class="w-20 p-2 border dark:border-gray-600 rounded text-right bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.01" value="{{ "%.2f"|format(calc_params.hardware_costs['Shelf Pin']) }}">
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <label class="text-sm text-gray-700 dark:text-gray-300">AXIAL Drawer System</label>
+                        <div class="flex items-center">
+                            <span class="text-gray-500 dark:text-gray-400 mr-1">$</span>
+                            <input type="number" id="hw-axial" class="w-20 p-2 border dark:border-gray-600 rounded text-right bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.01" value="{{ "%.2f"|format(calc_params.hardware_costs['AXIAL Drawer System']) }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edgebanding Costs -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Edgebanding Costs (per linear ft)</h2>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <label class="text-sm text-gray-700 dark:text-gray-300">0.5mm PVC</label>
+                        <div class="flex items-center">
+                            <span class="text-gray-500 dark:text-gray-400 mr-1">$</span>
+                            <input type="number" id="eb-05" class="w-20 p-2 border dark:border-gray-600 rounded text-right bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.01" value="{{ "%.2f"|format(calc_params.edgebanding_costs['0.5mm PVC']) }}">
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <label class="text-sm text-gray-700 dark:text-gray-300">1.0mm PVC</label>
+                        <div class="flex items-center">
+                            <span class="text-gray-500 dark:text-gray-400 mr-1">$</span>
+                            <input type="number" id="eb-10" class="w-20 p-2 border dark:border-gray-600 rounded text-right bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.01" value="{{ "%.2f"|format(calc_params.edgebanding_costs['1.0mm PVC']) }}">
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <label class="text-sm text-gray-700 dark:text-gray-300">2.0mm PVC</label>
+                        <div class="flex items-center">
+                            <span class="text-gray-500 dark:text-gray-400 mr-1">$</span>
+                            <input type="number" id="eb-20" class="w-20 p-2 border dark:border-gray-600 rounded text-right bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.01" value="{{ "%.2f"|format(calc_params.edgebanding_costs['2.0mm PVC']) }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pricing Rule Selection -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Pricing Rule</h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Select a pricing rule to apply markups. Configure rules in <a href="/settings" class="text-blue-600 dark:text-blue-400 hover:underline">Settings</a>.</p>
+                {% if pricing_rules %}
+                <select id="pricing-rule-select" onchange="applyPricingRule()" class="w-full p-3 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    <option value="">-- Select Pricing Rule --</option>
+                    {% for rule in pricing_rules %}
+                    <option value="{{ rule.id }}"
+                        data-markup-primary="{{ (rule.markup_primary * 100)|int }}"
+                        data-markup-back="{{ (rule.markup_back * 100)|int }}"
+                        data-markup-drawer="{{ (rule.markup_drawer_material * 100)|int }}"
+                        data-markup-fronts="{{ (rule.markup_door_drawer * 100)|int }}"
+                        data-markup-hardware="{{ (rule.markup_hardware * 100)|int }}"
+                        data-markup-edgebanding="{{ (rule.markup_edgebanding * 100)|int }}"
+                        data-buffer="{{ rule.material_usage_buffer|int }}"
+                        {% if calc_params.pricing_rule_id == rule.id %}selected{% endif %}>
+                        {{ rule.name }}{% if rule.description %} - {{ rule.description }}{% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+                <!-- Hidden fields to store markup values -->
+                <input type="hidden" id="markup-primary" value="{{ (calc_params.markup_primary * 100)|int }}">
+                <input type="hidden" id="markup-back" value="{{ (calc_params.markup_back * 100)|int }}">
+                <input type="hidden" id="markup-drawer" value="{{ (calc_params.markup_drawer_material * 100)|int }}">
+                <input type="hidden" id="markup-fronts" value="{{ (calc_params.markup_door_drawer * 100)|int }}">
+                <input type="hidden" id="markup-hardware" value="{{ (calc_params.markup_hardware * 100)|int }}">
+                <input type="hidden" id="markup-edgebanding" value="{{ (calc_params.markup_edgebanding * 100)|int }}">
+                <input type="hidden" id="material-buffer" value="{{ calc_params.material_usage_buffer|int }}">
+                <input type="hidden" id="pricing-rule-id" value="{{ calc_params.pricing_rule_id or '' }}">
+                <!-- Display current markups summary -->
+                <div id="markup-summary" class="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg text-sm {% if not calc_params.pricing_rule_id %}hidden{% endif %}">
+                    <div class="grid grid-cols-2 gap-2 text-gray-600 dark:text-gray-300">
+                        <div>Primary: <span id="display-primary" class="font-medium">{{ (calc_params.markup_primary * 100)|int }}</span>%</div>
+                        <div>Back: <span id="display-back" class="font-medium">{{ (calc_params.markup_back * 100)|int }}</span>%</div>
+                        <div>Drawer: <span id="display-drawer" class="font-medium">{{ (calc_params.markup_drawer_material * 100)|int }}</span>%</div>
+                        <div>Fronts: <span id="display-fronts" class="font-medium">{{ (calc_params.markup_door_drawer * 100)|int }}</span>%</div>
+                        <div>Hardware: <span id="display-hardware" class="font-medium">{{ (calc_params.markup_hardware * 100)|int }}</span>%</div>
+                        <div>Edgebanding: <span id="display-edgebanding" class="font-medium">{{ (calc_params.markup_edgebanding * 100)|int }}</span>%</div>
+                        <div class="col-span-2 pt-2 border-t dark:border-gray-600 mt-2">Buffer: <span id="display-buffer" class="font-medium">{{ calc_params.material_usage_buffer|int }}</span>%</div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-gray-500 dark:text-gray-400 mb-2">No pricing rules configured</p>
+                    <a href="/settings" class="text-blue-600 dark:text-blue-400 hover:underline text-sm">Go to Settings to create pricing rules</a>
+                </div>
+                <!-- Hidden fields with default values -->
+                <input type="hidden" id="markup-primary" value="0">
+                <input type="hidden" id="markup-back" value="0">
+                <input type="hidden" id="markup-drawer" value="0">
+                <input type="hidden" id="markup-fronts" value="0">
+                <input type="hidden" id="markup-hardware" value="0">
+                <input type="hidden" id="markup-edgebanding" value="0">
+                <input type="hidden" id="material-buffer" value="0">
+                <input type="hidden" id="pricing-rule-id" value="">
+                {% endif %}
+            </div>
+
+        </div>
+
+        <!-- Construction Parameters -->
+        <div class="grid grid-cols-2 gap-6 mt-6">
+            <!-- Panel Thicknesses -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Panel Thicknesses (inches)</h2>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <label class="text-sm text-gray-700 dark:text-gray-300">Primary Substrate</label>
+                        <input type="number" id="thick-primary" class="w-20 p-2 border dark:border-gray-600 rounded text-right bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.01" value="{{ "%.2f"|format(calc_params.primary_substrate_thickness) }}">
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <label class="text-sm text-gray-700 dark:text-gray-300">Back Panel</label>
+                        <input type="number" id="thick-back" class="w-20 p-2 border dark:border-gray-600 rounded text-right bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.01" value="{{ "%.2f"|format(calc_params.back_panel_thickness) }}">
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <label class="text-sm text-gray-700 dark:text-gray-300">Drawer Material</label>
+                        <input type="number" id="thick-drawer" class="w-20 p-2 border dark:border-gray-600 rounded text-right bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.01" value="{{ "%.2f"|format(calc_params.drawer_material_thickness) }}">
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <label class="text-sm text-gray-700 dark:text-gray-300">Door/Drawer Fronts</label>
+                        <input type="number" id="thick-fronts" class="w-20 p-2 border dark:border-gray-600 rounded text-right bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.01" value="{{ "%.2f"|format(calc_params.door_drawer_fronts_thickness) }}">
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Toe Kick & Base (inches)</h2>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <label class="text-sm text-gray-700 dark:text-gray-300">Toe Kick Height</label>
+                        <input type="number" id="toe-kick-height" class="w-20 p-2 border dark:border-gray-600 rounded text-right bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.125" value="{{ "%.2f"|format(calc_params.toe_kick_height) }}">
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <label class="text-sm text-gray-700 dark:text-gray-300">Toe Kick Inset</label>
+                        <input type="number" id="toe-kick-inset" class="w-20 p-2 border dark:border-gray-600 rounded text-right bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.125" value="{{ "%.2f"|format(calc_params.toe_kick_inset) }}">
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <label class="text-sm text-gray-700 dark:text-gray-300">Nailer Width</label>
+                        <input type="number" id="nailer-width" class="w-20 p-2 border dark:border-gray-600 rounded text-right bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.125" value="{{ "%.2f"|format(calc_params.nailer_width) }}">
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <label class="text-sm text-gray-700 dark:text-gray-300">Stretcher Width</label>
+                        <input type="number" id="stretcher-width" class="w-20 p-2 border dark:border-gray-600 rounded text-right bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.125" value="{{ "%.2f"|format(calc_params.stretcher_width) }}">
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Clearances & Adjustments (inches)</h2>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <label class="text-sm text-gray-700 dark:text-gray-300">Door Clearance</label>
+                        <input type="number" id="door-clearance" class="w-20 p-2 border dark:border-gray-600 rounded text-right bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.0625" value="{{ "%.2f"|format(calc_params.door_clearance) }}">
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <label class="text-sm text-gray-700 dark:text-gray-300">Door Height Adjustment</label>
+                        <input type="number" id="door-height-adj" class="w-20 p-2 border dark:border-gray-600 rounded text-right bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.0625" value="{{ "%.2f"|format(calc_params.door_height_adjustment) }}">
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <label class="text-sm text-gray-700 dark:text-gray-300">Shelf Setback</label>
+                        <input type="number" id="shelf-setback" class="w-20 p-2 border dark:border-gray-600 rounded text-right bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.125" value="{{ "%.2f"|format(calc_params.shelf_setback) }}">
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <label class="text-sm text-gray-700 dark:text-gray-300">Drawer Front Height</label>
+                        <input type="number" id="drawer-front-height" class="w-20 p-2 border dark:border-gray-600 rounded text-right bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.01" value="{{ "%.2f"|format(calc_params.drawer_front_height) }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customer Information (Per-Project) -->
+        <div class="mt-6">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Customer Information</h2>
+                    <span class="text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-2 py-1 rounded">Per-Project</span>
+                </div>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Customer details for this project. Saved with the project.</p>
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Customer Name</label>
+                            <input type="text" id="customer-name" class="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white" value="{{ calc_params.customer_name or '' }}" placeholder="Customer / Company Name">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Phone</label>
+                            <input type="text" id="customer-phone" class="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white" value="{{ calc_params.customer_phone or '' }}" placeholder="(555) 123-4567">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                            <input type="text" id="customer-email" class="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white" value="{{ calc_params.customer_email or '' }}" placeholder="customer@example.com">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Due Date</label>
+                            <input type="date" id="due-date" class="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white" value="{{ calc_params.due_date or '' }}">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Address</label>
+                        <textarea id="customer-address" rows="5" class="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white" placeholder="123 Customer Street&#10;City, State 12345">{{ calc_params.customer_address or '' }}</textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 dark:bg-gray-700 text-white px-4 py-2 rounded-lg shadow-lg hidden"></div>
+
+    <script>
+        // Auto-save debounce timer
+        let saveTimeout = null;
+        const SAVE_DELAY = 800; // ms to wait before auto-saving
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+
+        function showSaveStatus(status) {
+            const check = document.getElementById('save-check');
+            const spinner = document.getElementById('save-spinner');
+            const text = document.getElementById('save-text');
+
+            if (status === 'saving') {
+                check.classList.add('hidden');
+                spinner.classList.remove('hidden');
+                text.textContent = 'Saving...';
+                text.classList.remove('text-green-500', 'text-red-500');
+                text.classList.add('text-blue-500');
+            } else if (status === 'saved') {
+                check.classList.remove('hidden');
+                spinner.classList.add('hidden');
+                text.textContent = 'Saved';
+                text.classList.remove('text-blue-500', 'text-red-500');
+                text.classList.add('text-green-500');
+            } else if (status === 'error') {
+                check.classList.add('hidden');
+                spinner.classList.add('hidden');
+                text.textContent = 'Save failed';
+                text.classList.remove('text-blue-500', 'text-green-500');
+                text.classList.add('text-red-500');
+            } else if (status === 'pending') {
+                check.classList.add('hidden');
+                spinner.classList.add('hidden');
+                text.textContent = 'Unsaved changes';
+                text.classList.remove('text-blue-500', 'text-green-500', 'text-red-500');
+                text.classList.add('text-yellow-500');
+            }
+        }
+
+        function triggerAutoSave() {
+            showSaveStatus('pending');
+            if (saveTimeout) clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => saveConfig(), SAVE_DELAY);
+        }
+
+        function applyPricingRule() {
+            const select = document.getElementById('pricing-rule-select');
+            const option = select.options[select.selectedIndex];
+            const summary = document.getElementById('markup-summary');
+
+            if (!option.value) {
+                // No rule selected - hide summary
+                if (summary) summary.classList.add('hidden');
+                document.getElementById('pricing-rule-id').value = '';
+                triggerAutoSave();
+                return;
+            }
+
+            // Apply the pricing rule values to hidden fields
+            document.getElementById('markup-primary').value = option.dataset.markupPrimary;
+            document.getElementById('markup-back').value = option.dataset.markupBack;
+            document.getElementById('markup-drawer').value = option.dataset.markupDrawer;
+            document.getElementById('markup-fronts').value = option.dataset.markupFronts;
+            document.getElementById('markup-hardware').value = option.dataset.markupHardware;
+            document.getElementById('markup-edgebanding').value = option.dataset.markupEdgebanding;
+            document.getElementById('material-buffer').value = option.dataset.buffer;
+            document.getElementById('pricing-rule-id').value = option.value;
+
+            // Update display summary
+            if (summary) {
+                document.getElementById('display-primary').textContent = option.dataset.markupPrimary;
+                document.getElementById('display-back').textContent = option.dataset.markupBack;
+                document.getElementById('display-drawer').textContent = option.dataset.markupDrawer;
+                document.getElementById('display-fronts').textContent = option.dataset.markupFronts;
+                document.getElementById('display-hardware').textContent = option.dataset.markupHardware;
+                document.getElementById('display-edgebanding').textContent = option.dataset.markupEdgebanding;
+                document.getElementById('display-buffer').textContent = option.dataset.buffer;
+                summary.classList.remove('hidden');
+            }
+
+            triggerAutoSave();
+        }
+
+        async function saveConfig() {
+            showSaveStatus('saving');
+
+            const config = {
+                primary_substrate_thickness: parseFloat(document.getElementById('thick-primary').value),
+                back_panel_thickness: parseFloat(document.getElementById('thick-back').value),
+                drawer_material_thickness: parseFloat(document.getElementById('thick-drawer').value),
+                door_drawer_fronts_thickness: parseFloat(document.getElementById('thick-fronts').value),
+                toe_kick_height: parseFloat(document.getElementById('toe-kick-height').value),
+                toe_kick_inset: parseFloat(document.getElementById('toe-kick-inset').value),
+                nailer_width: parseFloat(document.getElementById('nailer-width').value),
+                stretcher_width: parseFloat(document.getElementById('stretcher-width').value),
+                door_clearance: parseFloat(document.getElementById('door-clearance').value),
+                door_height_adjustment: parseFloat(document.getElementById('door-height-adj').value),
+                shelf_setback: parseFloat(document.getElementById('shelf-setback').value),
+                drawer_front_height: parseFloat(document.getElementById('drawer-front-height').value),
+                material_costs: {
+                    "Primary Substrate": parseFloat(document.getElementById('cost-primary').value),
+                    "Back Panel": parseFloat(document.getElementById('cost-back').value),
+                    "Drawer Material": parseFloat(document.getElementById('cost-drawer').value),
+                    "Door/Drawer Fronts": parseFloat(document.getElementById('cost-fronts').value)
+                },
+                hardware_costs: {
+                    "Hinge": parseFloat(document.getElementById('hw-hinge').value),
+                    "Handle": parseFloat(document.getElementById('hw-handle').value),
+                    "Drawer Pull": parseFloat(document.getElementById('hw-pull').value),
+                    "Drawer Slide": parseFloat(document.getElementById('hw-slide').value),
+                    "Shelf Pin": parseFloat(document.getElementById('hw-pin').value),
+                    "AXIAL Drawer System": parseFloat(document.getElementById('hw-axial').value),
+                    "Heavy Duty Drawer Slide": 15.00,
+                    "Divider Bracket": 1.25
+                },
+                edgebanding_costs: {
+                    "0.5mm PVC": parseFloat(document.getElementById('eb-05').value),
+                    "1.0mm PVC": parseFloat(document.getElementById('eb-10').value),
+                    "2.0mm PVC": parseFloat(document.getElementById('eb-20').value)
+                },
+                // Markup settings (convert from percentage to decimal)
+                markup_primary: parseFloat(document.getElementById('markup-primary').value) / 100,
+                markup_back: parseFloat(document.getElementById('markup-back').value) / 100,
+                markup_drawer_material: parseFloat(document.getElementById('markup-drawer').value) / 100,
+                markup_door_drawer: parseFloat(document.getElementById('markup-fronts').value) / 100,
+                markup_hardware: parseFloat(document.getElementById('markup-hardware').value) / 100,
+                markup_edgebanding: parseFloat(document.getElementById('markup-edgebanding').value) / 100,
+                material_usage_buffer: parseInt(document.getElementById('material-buffer').value) || 0,
+                pricing_rule_id: document.getElementById('pricing-rule-id').value || null,
+                // Customer information (per-project)
+                customer_name: document.getElementById('customer-name').value,
+                customer_address: document.getElementById('customer-address').value,
+                customer_phone: document.getElementById('customer-phone').value,
+                customer_email: document.getElementById('customer-email').value,
+                due_date: document.getElementById('due-date').value
+            };
+
+            try {
+                // Save config to session
+                const response = await fetch('/api/config', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+
+                const result = await response.json();
+                if (!result.success) {
+                    showSaveStatus('error');
+                    return;
+                }
+
+                // Also save to current project if one is loaded
+                {% if current_project %}
+                const projectResponse = await fetch('/api/project/{{ current_project.id }}', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ calc_params: config })
+                });
+                const projectResult = await projectResponse.json();
+                if (projectResult.success) {
+                    showSaveStatus('saved');
+                } else {
+                    showSaveStatus('error');
+                }
+                {% else %}
+                showSaveStatus('saved');
+                {% endif %}
+            } catch (error) {
+                console.error('Save error:', error);
+                showSaveStatus('error');
+            }
+        }
+
+        // Initialize auto-save on all inputs
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get all input, select, and textarea elements
+            const inputs = document.querySelectorAll('input[type="number"], input[type="text"], textarea, select');
+
+            inputs.forEach(input => {
+                // For number inputs, trigger on change (after losing focus or pressing enter)
+                // and on input (while typing) with debounce
+                if (input.type === 'number') {
+                    input.addEventListener('change', triggerAutoSave);
+                    input.addEventListener('input', triggerAutoSave);
+                } else if (input.tagName === 'SELECT') {
+                    // Select already has onchange for pricing rule, but add for safety
+                    if (!input.id.includes('pricing-rule')) {
+                        input.addEventListener('change', triggerAutoSave);
+                    }
+                } else {
+                    // Text inputs and textareas
+                    input.addEventListener('input', triggerAutoSave);
+                    input.addEventListener('change', triggerAutoSave);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

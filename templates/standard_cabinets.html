@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Standard Cabinets - Cabinet Quoter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#64748b'
+                    }
+                }
+            }
+        }
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
+    <style>
+        .modal { display: none; position: fixed; inset: 0; z-index: 50; }
+        .modal.active { display: flex; }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 min-h-screen transition-colors duration-200">
+    <!-- Navigation -->
+    <nav class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 transition-colors">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between h-14">
+                <div class="flex items-center space-x-6">
+                    {% if current_project %}
+                    <a href="/complex/{{ current_project.id }}" class="text-lg font-bold text-gray-900 dark:text-white">{{ current_project.name }}</a>
+                    {% else %}
+                    <a href="/" class="text-lg font-bold text-gray-900 dark:text-white">Cabinet Quoter</a>
+                    {% endif %}
+                    <div class="flex space-x-1">
+                        <a href="{% if current_project %}/complex/{{ current_project.id }}{% else %}/{% endif %}" class="nav-btn px-3 py-1.5 rounded text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Overview</a>
+                        <a href="/standard-cabinets" class="nav-btn px-3 py-1.5 rounded text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white">Standards</a>
+                        <a href="/templates" class="nav-btn px-3 py-1.5 rounded text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Templates</a>
+                        <a href="/config" class="nav-btn px-3 py-1.5 rounded text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Configuration</a>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <a href="/settings" class="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700" title="Settings">
+                        <svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-6">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Standard Cabinets</h1>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Reusable cabinet presets for common sizes</p>
+            </div>
+            <button onclick="showAddModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">
+                + Add Standard Cabinet
+            </button>
+        </div>
+
+        <!-- Cabinets Grid -->
+        {% if cabinets %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for cabinet in cabinets %}
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+                <div class="p-4">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ cabinet.name }}</h3>
+                                {% if cabinet.is_global %}
+                                <span class="text-xs bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 px-1.5 py-0.5 rounded">Global</span>
+                                {% else %}
+                                <span class="text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200 px-1.5 py-0.5 rounded">Project</span>
+                                {% endif %}
+                            </div>
+                            {% if cabinet.code %}
+                            <span class="text-sm text-gray-500 dark:text-gray-400">{{ cabinet.code }}</span>
+                            {% endif %}
+                        </div>
+                        <span class="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full">
+                            {{ cabinet.type }}
+                        </span>
+                    </div>
+
+                    <!-- Dimensions -->
+                    <div class="bg-gray-50 dark:bg-gray-700/50 rounded p-3 mb-3">
+                        {% if cabinet.type == 'Appliance Panel' and cabinet.panel_sides == 1 %}
+                        <div class="grid grid-cols-2 gap-2 text-center">
+                            <div>
+                                <div class="text-lg font-semibold text-gray-900 dark:text-white">{{ cabinet.height }}"</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">Height</div>
+                            </div>
+                            <div>
+                                <div class="text-lg font-semibold text-gray-900 dark:text-white">{{ cabinet.depth }}"</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">Depth</div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="grid grid-cols-3 gap-2 text-center">
+                            <div>
+                                <div class="text-lg font-semibold text-gray-900 dark:text-white">{{ cabinet.width }}"</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">Width</div>
+                            </div>
+                            <div>
+                                <div class="text-lg font-semibold text-gray-900 dark:text-white">{{ cabinet.height }}"</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">Height</div>
+                            </div>
+                            <div>
+                                <div class="text-lg font-semibold text-gray-900 dark:text-white">{{ cabinet.depth }}"</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">Depth</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Features -->
+                    <div class="flex flex-wrap gap-1 mb-3">
+                        {% if cabinet.num_doors > 0 %}
+                        <span class="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded">{{ cabinet.num_doors }} door{{ 's' if cabinet.num_doors > 1 else '' }}</span>
+                        {% endif %}
+                        {% if cabinet.num_drawers > 0 %}
+                        <span class="text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200 px-2 py-0.5 rounded">{{ cabinet.num_drawers }} drawer{{ 's' if cabinet.num_drawers > 1 else '' }}</span>
+                        {% endif %}
+                        {% if cabinet.num_shelves > 0 %}
+                        <span class="text-xs bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 px-2 py-0.5 rounded">{{ cabinet.num_shelves }} shelf{{ 'ves' if cabinet.num_shelves > 1 else '' }}</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="flex justify-between items-center">
+                        <button onclick="exportCabinetBOM({{ cabinet.id }})" class="p-1.5 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded" title="Export BOM">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                        </button>
+                        <div class="flex space-x-2">
+                            <button onclick="editCabinet({{ cabinet.id }})" class="px-3 py-1.5 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded">
+                                Edit
+                            </button>
+                            <button onclick="deleteCabinet({{ cabinet.id }}, '{{ cabinet.name }}')" class="px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center">
+            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                </svg>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-1">No standard cabinets yet</h3>
+            <p class="text-gray-500 dark:text-gray-400 mb-4">Create your first standard cabinet preset to reuse in templates and units.</p>
+            <button onclick="showAddModal()" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">
+                + Add Standard Cabinet
+            </button>
+        </div>
+        {% endif %}
+    </main>
+
+    <!-- Add/Edit Cabinet Modal -->
+    <div id="cabinet-modal" class="modal items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 id="modal-title" class="text-xl font-bold text-gray-900 dark:text-white">Add Standard Cabinet</h2>
+                    <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <form id="cabinet-form" onsubmit="saveCabinet(event)">
+                    <input type="hidden" id="cabinet-id" value="">
+
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name *</label>
+                            <input type="text" id="cab-name" required class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" placeholder="e.g., Base 24 Standard">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Code</label>
+                            <input type="text" id="cab-code" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" placeholder="e.g., B24">
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
+                        <select id="cab-type" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" onchange="updateDefaults()">
+                            <option value="Base Cabinets">Base Cabinet</option>
+                            <option value="Open Base Cabinets">Open Base Cabinet</option>
+                            <option value="Wall Cabinets">Wall Cabinet</option>
+                            <option value="Drawer Cabinets">Drawer Cabinet</option>
+                            <option value="Tall Cabinets">Tall Cabinet</option>
+                            <option value="Sink Base Cabinets">Sink Base Cabinet</option>
+                            <option value="Pull Out Trashcan">Pull Out Trashcan</option>
+                            <option value="Appliance Panel">Appliance Panel</option>
+                        </select>
+                    </div>
+
+                    <!-- Appliance Panel Sides (hidden by default) -->
+                    <div id="panel-sides-row" class="mb-4 hidden">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Number of Sides</label>
+                        <select id="cab-panel-sides" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" onchange="updatePanelFields()">
+                            <option value="1">1 Side (Height x Depth only)</option>
+                            <option value="2">2 Sides (L-shape, requires Width)</option>
+                            <option value="3">3 Sides (U-shape, requires Width)</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-4 mb-4">
+                        <div id="cab-width-container">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Width</label>
+                            <input type="number" id="cab-width" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.125" value="24">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Height</label>
+                            <input type="number" id="cab-height" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.125" value="34.5">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Depth</label>
+                            <input type="number" id="cab-depth" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" step="0.125" value="24">
+                        </div>
+                    </div>
+
+                    <div id="cabinet-options-row" class="grid grid-cols-3 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Doors</label>
+                            <input type="number" id="cab-num-doors" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" min="0" value="2">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Drawers</label>
+                            <input type="number" id="cab-num-drawers" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" min="0" value="0">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Shelves</label>
+                            <input type="number" id="cab-num-shelves" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" min="0" value="0">
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Edgebanding</label>
+                        <select id="cab-edgebanding" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                            <option value="0.5mm PVC">0.5mm PVC</option>
+                            <option value="1.0mm PVC" selected>1.0mm PVC</option>
+                            <option value="2.0mm PVC">2.0mm PVC</option>
+                        </select>
+                    </div>
+
+                    <!-- Global/Project Toggle -->
+                    <div class="mb-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <label class="flex items-center cursor-pointer">
+                            <input type="checkbox" id="cab-is-global" class="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 dark:focus:ring-green-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                            <span class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">Global Standard Cabinet</span>
+                            <span class="ml-2 text-xs text-gray-500 dark:text-gray-400">(Available across all projects)</span>
+                        </label>
+                    </div>
+
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" onclick="closeModal()" class="px-4 py-2 border dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            Save Cabinet
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" class="modal items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-sm mx-4 p-6">
+            <div class="flex items-center mb-4">
+                <div class="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mr-3">
+                    <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Delete Cabinet</h3>
+            </div>
+            <p class="text-gray-600 dark:text-gray-300 mb-2">Are you sure you want to delete "<span id="delete-cabinet-name"></span>"?</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">This action cannot be undone.</p>
+            <div class="flex justify-end space-x-3">
+                <button onclick="closeDeleteModal()" class="px-4 py-2 border dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    Cancel
+                </button>
+                <button onclick="confirmDelete()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 dark:bg-gray-700 text-white px-4 py-2 rounded-lg shadow-lg hidden"></div>
+
+    <script>
+        function showToast(message, duration = 3000) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), duration);
+        }
+
+        // Export BOM function
+        function exportCabinetBOM(id) {
+            window.location.href = `/api/export/csv/standard-cabinet/${id}`;
+            showToast('Downloading BOM...');
+        }
+
+        // Type defaults
+        const typeDefaults = {
+            'Base Cabinets': { depth: 24, height: 34.5, numDoors: 1, numDrawers: 0, numShelves: 0 },
+            'Open Base Cabinets': { depth: 24, height: 34.5, numDoors: 0, numDrawers: 0, numShelves: 1 },
+            'Wall Cabinets': { depth: 12, height: 30, numDoors: 2, numDrawers: 0, numShelves: 0 },
+            'Drawer Cabinets': { depth: 24, height: 34.5, numDoors: 0, numDrawers: 4, numShelves: 0 },
+            'Tall Cabinets': { depth: 24, height: 84, numDoors: 2, numDrawers: 0, numShelves: 0 },
+            'Sink Base Cabinets': { depth: 24, height: 34.5, numDoors: 2, numDrawers: 0, numShelves: 0 },
+            'Pull Out Trashcan': { depth: 24, height: 35, numDoors: 0, numDrawers: 0, numShelves: 0 },
+            'Appliance Panel': { depth: 24, height: 34.5, numDoors: 0, numDrawers: 0, numShelves: 0 }
+        };
+
+        function updateDefaults() {
+            const type = document.getElementById('cab-type').value;
+            const d = typeDefaults[type] || typeDefaults['Base Cabinets'];
+            document.getElementById('cab-depth').value = d.depth;
+            document.getElementById('cab-height').value = d.height;
+            document.getElementById('cab-num-doors').value = d.numDoors;
+            document.getElementById('cab-num-drawers').value = d.numDrawers;
+            document.getElementById('cab-num-shelves').value = d.numShelves;
+
+            // Show/hide appliance panel specific fields
+            const isAppliancePanel = type === 'Appliance Panel';
+            document.getElementById('panel-sides-row').classList.toggle('hidden', !isAppliancePanel);
+            document.getElementById('cabinet-options-row').classList.toggle('hidden', isAppliancePanel);
+
+            if (isAppliancePanel) {
+                document.getElementById('cab-panel-sides').value = '1';
+                updatePanelFields();
+            } else {
+                document.getElementById('cab-width-container').classList.remove('hidden');
+            }
+        }
+
+        function updatePanelFields() {
+            const sides = parseInt(document.getElementById('cab-panel-sides').value) || 1;
+            // For 1 side, only Height and Depth are needed (it's a single panel)
+            // For 2+ sides (L-shape or U-shape), Width is also required
+            if (sides === 1) {
+                document.getElementById('cab-width-container').classList.add('hidden');
+                document.getElementById('cab-width').value = 0;
+            } else {
+                document.getElementById('cab-width-container').classList.remove('hidden');
+            }
+        }
+
+        // Add/Edit Modal
+        function showAddModal() {
+            document.getElementById('cabinet-id').value = '';
+            document.getElementById('modal-title').textContent = 'Add Standard Cabinet';
+            document.getElementById('cabinet-form').reset();
+            document.getElementById('cab-is-global').checked = false;
+            updateDefaults();
+            document.getElementById('cabinet-modal').classList.add('active');
+        }
+
+        async function editCabinet(id) {
+            try {
+                const response = await fetch(`/api/standard-cabinet/${id}`);
+                const cabinet = await response.json();
+
+                if (cabinet.error) {
+                    showToast('Cabinet not found');
+                    return;
+                }
+
+                document.getElementById('cabinet-id').value = cabinet.id;
+                document.getElementById('modal-title').textContent = 'Edit Standard Cabinet';
+                document.getElementById('cab-name').value = cabinet.name;
+                document.getElementById('cab-code').value = cabinet.code || '';
+                document.getElementById('cab-type').value = cabinet.type;
+                document.getElementById('cab-width').value = cabinet.width;
+                document.getElementById('cab-height').value = cabinet.height;
+                document.getElementById('cab-depth').value = cabinet.depth;
+                document.getElementById('cab-num-doors').value = cabinet.num_doors || 0;
+                document.getElementById('cab-num-drawers').value = cabinet.num_drawers || 0;
+                document.getElementById('cab-num-shelves').value = cabinet.num_shelves || 0;
+                document.getElementById('cab-edgebanding').value = cabinet.edgebanding_type || '1.0mm PVC';
+                document.getElementById('cab-is-global').checked = cabinet.is_global || false;
+
+                // Handle Appliance Panel fields
+                const isAppliancePanel = cabinet.type === 'Appliance Panel';
+                document.getElementById('panel-sides-row').classList.toggle('hidden', !isAppliancePanel);
+                document.getElementById('cabinet-options-row').classList.toggle('hidden', isAppliancePanel);
+                if (isAppliancePanel) {
+                    document.getElementById('cab-panel-sides').value = cabinet.panel_sides || 1;
+                    updatePanelFields();
+                } else {
+                    document.getElementById('cab-width-container').classList.remove('hidden');
+                }
+
+                document.getElementById('cabinet-modal').classList.add('active');
+            } catch (error) {
+                showToast('Error loading cabinet');
+                console.error('Edit cabinet error:', error);
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('cabinet-modal').classList.remove('active');
+        }
+
+        async function saveCabinet(e) {
+            e.preventDefault();
+
+            const id = document.getElementById('cabinet-id').value;
+            const cabinetType = document.getElementById('cab-type').value;
+            const numDoors = parseInt(document.getElementById('cab-num-doors').value) || 0;
+            const numDrawers = parseInt(document.getElementById('cab-num-drawers').value) || 0;
+            const numShelves = parseInt(document.getElementById('cab-num-shelves').value) || 0;
+
+            const data = {
+                name: document.getElementById('cab-name').value,
+                code: document.getElementById('cab-code').value,
+                type: cabinetType,
+                width: parseFloat(document.getElementById('cab-width').value) || 0,
+                height: parseFloat(document.getElementById('cab-height').value),
+                depth: parseFloat(document.getElementById('cab-depth').value),
+                has_doors: numDoors > 0,
+                num_doors: numDoors,
+                has_drawers: numDrawers > 0,
+                num_drawers: numDrawers,
+                has_shelves: numShelves > 0,
+                num_shelves: numShelves,
+                edgebanding_type: document.getElementById('cab-edgebanding').value,
+                is_global: document.getElementById('cab-is-global').checked
+            };
+
+            // Add panel_sides for Appliance Panel
+            if (cabinetType === 'Appliance Panel') {
+                data.panel_sides = parseInt(document.getElementById('cab-panel-sides').value) || 1;
+            }
+
+            try {
+                const url = id ? `/api/standard-cabinet/${id}` : '/api/standard-cabinet';
+                const method = id ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                if (result.success || result.id) {
+                    showToast(id ? 'Cabinet updated!' : 'Cabinet created!');
+                    closeModal();
+                    location.reload();
+                } else {
+                    showToast('Error: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                showToast('Error saving cabinet');
+                console.error('Save cabinet error:', error);
+            }
+        }
+
+        // Delete Modal
+        let pendingDeleteId = null;
+
+        function deleteCabinet(id, name) {
+            pendingDeleteId = id;
+            document.getElementById('delete-cabinet-name').textContent = name;
+            document.getElementById('delete-modal').classList.add('active');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('delete-modal').classList.remove('active');
+            pendingDeleteId = null;
+        }
+
+        async function confirmDelete() {
+            if (!pendingDeleteId) return;
+
+            try {
+                const response = await fetch(`/api/standard-cabinet/${pendingDeleteId}`, {
+                    method: 'DELETE'
+                });
+                const result = await response.json();
+
+                closeDeleteModal();
+
+                if (result.success) {
+                    showToast('Cabinet deleted');
+                    location.reload();
+                } else {
+                    showToast('Failed to delete cabinet');
+                }
+            } catch (error) {
+                showToast('Error deleting cabinet');
+                console.error('Delete cabinet error:', error);
+            }
+        }
+    </script>
+</body>
+</html>

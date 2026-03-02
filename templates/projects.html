@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projects - Cabinet Quoter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { colors: { primary: '#3b82f6', secondary: '#64748b' } } }
+        }
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
+    <style>
+        .modal { display: none; position: fixed; inset: 0; z-index: 50; }
+        .modal.active { display: flex; }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 min-h-screen transition-colors">
+    <!-- Navigation -->
+    <nav class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 transition-colors">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between h-14">
+                <div class="flex items-center space-x-6">
+                    <a href="/" class="text-lg font-bold text-gray-900 dark:text-white">Cabinet Quoter</a>
+                    <div class="flex space-x-1">
+                        <a href="/" class="nav-btn px-3 py-1.5 rounded text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Overview</a>
+                        <a href="/projects" class="nav-btn px-3 py-1.5 rounded text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white">Projects</a>
+                        <a href="/standard-cabinets" class="nav-btn px-3 py-1.5 rounded text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Standards</a>
+                        <a href="/templates" class="nav-btn px-3 py-1.5 rounded text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Templates</a>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <a href="/config" class="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700" title="Settings">
+                        <svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-6">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Projects</h1>
+        </div>
+
+        <!-- Database Status -->
+        {% if db_connected %}
+        <div class="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-6 flex items-center">
+            <svg class="w-5 h-5 text-green-600 dark:text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            <span class="text-sm text-green-700 dark:text-green-300">Connected to database</span>
+        </div>
+        {% else %}
+        <div class="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 mb-6 flex items-center">
+            <svg class="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            </svg>
+            <span class="text-sm text-yellow-700 dark:text-yellow-300">Database not connected. Projects saved locally only.</span>
+        </div>
+        {% endif %}
+
+        <!-- Create New Project -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Create New Project</h2>
+
+            <!-- Project Type Selector -->
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Project Type</label>
+                <div class="flex space-x-4">
+                    <label class="flex items-center cursor-pointer">
+                        <input type="radio" name="project-type" value="standard" checked class="mr-2 text-blue-600">
+                        <span class="text-sm text-gray-700 dark:text-gray-300">Standard Quote</span>
+                    </label>
+                    <label class="flex items-center cursor-pointer">
+                        <input type="radio" name="project-type" value="apartment_complex" class="mr-2 text-blue-600">
+                        <span class="text-sm text-gray-700 dark:text-gray-300">Multi Unit</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="flex space-x-3">
+                <input type="text" id="new-project-name" class="flex-1 p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400" placeholder="Enter project name...">
+                <button onclick="createProject()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium disabled:opacity-50" {% if not db_connected %}disabled{% endif %}>
+                    Create Project
+                </button>
+            </div>
+        </div>
+
+        <!-- Projects List -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Saved Projects</h2>
+            </div>
+
+            {% if projects %}
+            <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% for project in projects %}
+                <div class="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 flex justify-between items-center {% if current_project and current_project.id == project.id %}bg-blue-50 dark:bg-blue-900/30{% endif %}">
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <h3 class="font-medium text-gray-900 dark:text-white">{{ project.name }}</h3>
+                            {% if project.project_type == 'apartment_complex' %}
+                            <span class="text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200 px-2 py-0.5 rounded-full">Complex</span>
+                            {% else %}
+                            <span class="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded-full">Standard</span>
+                            {% endif %}
+                        </div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Updated: {{ project.updated_at[:10] if project.updated_at else 'N/A' }}</p>
+                    </div>
+                    <div class="flex space-x-2">
+                        {% if current_project and current_project.id == project.id %}
+                        <span class="px-3 py-1.5 bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200 rounded text-sm font-medium">Current</span>
+                        {% else %}
+                        <button onclick="loadProject({{ project.id }}, '{{ project.project_type or 'standard' }}')" class="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-sm font-medium">
+                            {% if project.project_type == 'apartment_complex' %}Open{% else %}Load{% endif %}
+                        </button>
+                        {% endif %}
+                        <button onclick="deleteProject({{ project.id }}, '{{ project.name }}')" class="px-3 py-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded text-sm font-medium">
+                            Delete
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="p-8 text-center">
+                <p class="text-gray-500 dark:text-gray-400">No saved projects yet.</p>
+                <p class="text-sm text-gray-400 dark:text-gray-500 mt-1">Create a new project above to get started.</p>
+            </div>
+            {% endif %}
+        </div>
+    </main>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 dark:bg-gray-700 text-white px-4 py-2 rounded-lg shadow-lg hidden"></div>
+
+    <script>
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+
+        async function createProject() {
+            const name = document.getElementById('new-project-name').value.trim();
+            if (!name) {
+                showToast('Please enter a project name');
+                return;
+            }
+
+            const projectType = document.querySelector('input[name="project-type"]:checked').value;
+
+            if (projectType === 'apartment_complex') {
+                // Create apartment complex
+                const response = await fetch('/api/project/apartment-complex', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Multi unit project created!');
+                    window.location.href = `/complex/${result.id}`;
+                } else {
+                    showToast('Error: ' + (result.error || 'Failed to create complex'));
+                }
+            } else {
+                // Create standard project
+                const response = await fetch('/api/project', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Project created!');
+                    window.location.href = '/';
+                } else {
+                    showToast('Error: ' + (result.error || 'Failed to create project'));
+                }
+            }
+        }
+
+        async function loadProject(id, projectType) {
+            if (projectType === 'apartment_complex') {
+                window.location.href = `/complex/${id}`;
+                return;
+            }
+
+            const response = await fetch(`/api/project/${id}`);
+            const result = await response.json();
+
+            if (result.success) {
+                showToast('Project loaded!');
+                window.location.href = '/';
+            } else {
+                showToast('Error: ' + (result.error || 'Failed to load project'));
+            }
+        }
+
+        async function deleteProject(id, name) {
+            if (!confirm(`Delete project "${name}"? This cannot be undone.`)) return;
+
+            const response = await fetch(`/api/project/${id}`, { method: 'DELETE' });
+            const result = await response.json();
+
+            if (result.success) {
+                showToast('Project deleted');
+                location.reload();
+            } else {
+                showToast('Error: Failed to delete project');
+            }
+        }
+
+        // Enter key to create project
+        document.getElementById('new-project-name').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') createProject();
+        });
+    </script>
+</body>
+</html>

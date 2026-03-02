@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ project.name }} - Multi Unit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#64748b'
+                    }
+                }
+            }
+        }
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
+    <style>
+        .modal { display: none; position: fixed; inset: 0; z-index: 50; }
+        .modal.active { display: flex; }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 min-h-screen transition-colors duration-200">
+    <!-- Navigation -->
+    <nav class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 transition-colors">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between h-14">
+                <div class="flex items-center space-x-6">
+                    <a href="/complex/{{ project.id }}" class="text-lg font-bold text-gray-900 dark:text-white">{{ project.name }}</a>
+                    <div class="flex space-x-1">
+                        <a href="/complex/{{ project.id }}" class="nav-btn px-3 py-1.5 rounded text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white">Overview</a>
+                        <a href="/standard-cabinets" class="nav-btn px-3 py-1.5 rounded text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Standards</a>
+                        <a href="/templates" class="nav-btn px-3 py-1.5 rounded text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Templates</a>
+                        <a href="/config" class="nav-btn px-3 py-1.5 rounded text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Configuration</a>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <!-- Export CSV Button -->
+                    <a href="/api/export/csv/complex/{{ project.id }}" class="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700" title="Export Project to CSV">
+                        <svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                    </a>
+                    <a href="/config" class="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700" title="Settings">
+                        <svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-6">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Overview</h1>
+            <button onclick="showAddUnitModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">
+                + Add Unit
+            </button>
+        </div>
+
+        <!-- Totals Summary -->
+        <div class="grid grid-cols-5 gap-4 mb-6">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+                <div class="text-sm text-gray-500 dark:text-gray-400">Units</div>
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ totals.unit_count }}</div>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+                <div class="text-sm text-gray-500 dark:text-gray-400">Material Cost</div>
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">${{ "%.2f"|format(totals.material) }}</div>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+                <div class="text-sm text-gray-500 dark:text-gray-400">Hardware Cost</div>
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">${{ "%.2f"|format(totals.hardware) }}</div>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+                <div class="text-sm text-gray-500 dark:text-gray-400">Total Cost</div>
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">${{ "%.2f"|format(totals.total) }}</div>
+            </div>
+            <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-4">
+                <div class="text-sm text-green-600 dark:text-green-400">Total w/ Markup</div>
+                <div class="text-2xl font-bold text-green-600 dark:text-green-400">${{ "%.2f"|format(totals.marked_up_total) }}</div>
+            </div>
+        </div>
+
+        <!-- Units Table -->
+        {% if units %}
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Unit</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Items</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Material</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Hardware</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Unit Cost</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Unit Total</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for unit in units %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer" onclick="window.location='/unit/{{ project.id }}/{{ unit.id }}'">
+                        <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{{ unit.unit_number }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                            {% set unit_items = unit.get('items', []) %}
+                            {% set template_items = unit_items|selectattr('type', 'equalto', 'template')|list %}
+                            {% set standard_items = unit_items|selectattr('type', 'equalto', 'standard')|list %}
+                            {% set custom_items = unit_items|selectattr('type', 'equalto', 'custom')|list %}
+                            {% set template_count = template_items|sum(attribute='cabinet_count') %}
+                            {% set standard_count = standard_items|sum(attribute='cabinet_count') %}
+                            {% set custom_count = custom_items|sum(attribute='cabinet_count') %}
+                            {% set total_count = template_count + standard_count + custom_count %}
+                            {% if total_count > 0 %}
+                            <div class="flex items-center space-x-2">
+                                <span class="text-gray-900 dark:text-white font-medium">{{ total_count }} cabinet{% if total_count != 1 %}s{% endif %}</span>
+                                <div class="flex space-x-1">
+                                    {% if template_count > 0 %}
+                                    <span class="text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded">{{ template_count }}T</span>
+                                    {% endif %}
+                                    {% if standard_count > 0 %}
+                                    <span class="text-xs bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 px-1.5 py-0.5 rounded">{{ standard_count }}S</span>
+                                    {% endif %}
+                                    {% if custom_count > 0 %}
+                                    <span class="text-xs bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 px-1.5 py-0.5 rounded">{{ custom_count }}C</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% else %}
+                            <span class="text-gray-400 dark:text-gray-500">No items</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 text-right">${{ "%.2f"|format(unit.costs.unit_total.material) }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 text-right">${{ "%.2f"|format(unit.costs.unit_total.hardware) }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 text-right">${{ "%.2f"|format(unit.costs.unit_total.total) }}</td>
+                        <td class="px-4 py-3 text-sm font-medium text-green-600 dark:text-green-400 text-right">${{ "%.2f"|format(unit.costs.unit_total.marked_up_total) }}</td>
+                        <td class="px-4 py-3 text-sm text-right" onclick="event.stopPropagation()">
+                            <button onclick="deleteUnit('{{ unit.id }}', '{{ unit.unit_number }}')" class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">Delete</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center">
+            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                </svg>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-1">No units yet</h3>
+            <p class="text-gray-500 dark:text-gray-400 mb-4">Add your first apartment unit to get started.</p>
+            <button onclick="showAddUnitModal()" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">
+                + Add Unit
+            </button>
+        </div>
+        {% endif %}
+    </main>
+
+    <!-- Add Unit Modal -->
+    <div id="add-unit-modal" class="modal items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md mx-4 p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white">Add Unit</h2>
+                <button onclick="closeAddUnitModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <form id="add-unit-form" onsubmit="addUnit(event)">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unit Number</label>
+                    <input type="text" id="unit-number" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" placeholder="e.g., 101, A2" required>
+                </div>
+
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeAddUnitModal()" class="px-4 py-2 border dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        Add Unit
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Unit Modal -->
+    <div id="delete-unit-modal" class="modal items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-sm mx-4 p-6">
+            <div class="flex items-center mb-4">
+                <div class="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mr-3">
+                    <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Delete Unit</h3>
+            </div>
+            <p class="text-gray-600 dark:text-gray-300 mb-2">Are you sure you want to delete Unit "<span id="delete-unit-number"></span>"?</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">This will remove all cabinet items from this unit.</p>
+            <div class="flex justify-end space-x-3">
+                <button onclick="closeDeleteUnitModal()" class="px-4 py-2 border dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    Cancel
+                </button>
+                <button onclick="confirmDeleteUnit()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-20 right-4 bg-gray-800 dark:bg-gray-700 text-white px-4 py-2 rounded-lg shadow-lg hidden z-40"></div>
+
+    <!-- AI Assistant Chat Bubble -->
+    <div id="ai-chat-container" class="fixed bottom-4 right-4 z-50">
+        <!-- Chat Panel (hidden by default) -->
+        <div id="ai-chat-panel" class="hidden mb-3 w-80 sm:w-96 bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col" style="height: 450px;">
+            <!-- Header -->
+            <div class="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700 bg-blue-600 rounded-t-lg">
+                <div class="flex items-center space-x-2">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                    </svg>
+                    <span class="font-semibold text-white text-sm">AI Assistant</span>
+                </div>
+                <button onclick="toggleAIChat()" class="text-white hover:text-gray-200">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <!-- Context Indicator -->
+            <div class="px-3 py-2 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600 text-xs text-gray-500 dark:text-gray-400">
+                <span class="font-medium">Context:</span> {{ project.name }} (Complex Overview)
+            </div>
+            <!-- Messages -->
+            <div id="ai-chat-messages" class="flex-1 overflow-y-auto p-3 space-y-3">
+                <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-3 text-sm text-gray-700 dark:text-gray-300">
+                    <p class="font-medium text-blue-700 dark:text-blue-300 mb-1">Hi! I can help you with:</p>
+                    <ul class="list-disc list-inside space-y-1 text-xs">
+                        <li>"Create unit 1A" - add a new unit</li>
+                        <li>"Create units 101 to 110" - batch create</li>
+                        <li>"What templates are available?"</li>
+                    </ul>
+                    <p class="text-xs mt-2 text-gray-500 dark:text-gray-400">To add items, navigate into a unit first.</p>
+                </div>
+            </div>
+            <!-- Input -->
+            <div class="p-3 border-t border-gray-200 dark:border-gray-700">
+                <form onsubmit="sendAIMessage(event)" class="flex space-x-2">
+                    <input type="text" id="ai-chat-input" class="flex-1 p-2 text-sm border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400" placeholder="Type a command...">
+                    <button type="submit" id="ai-send-btn" class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                        </svg>
+                    </button>
+                </form>
+            </div>
+        </div>
+        <!-- Toggle Button -->
+        <button onclick="toggleAIChat()" id="ai-chat-toggle" class="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105">
+            <svg id="ai-chat-icon-open" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
+            </svg>
+            <svg id="ai-chat-icon-close" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+    </div>
+
+    <script>
+        const projectId = {{ project.id }};
+
+        function showToast(message, duration = 3000) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), duration);
+        }
+
+        // Add Unit Modal
+        function showAddUnitModal() {
+            document.getElementById('add-unit-form').reset();
+            document.getElementById('add-unit-modal').classList.add('active');
+        }
+
+        function closeAddUnitModal() {
+            document.getElementById('add-unit-modal').classList.remove('active');
+        }
+
+        async function addUnit(e) {
+            e.preventDefault();
+
+            const unitNumber = document.getElementById('unit-number').value.trim();
+
+            if (!unitNumber) {
+                showToast('Please enter a unit number');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/project/${projectId}/unit`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        unit_number: unitNumber,
+                        items: []
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Unit added successfully!');
+                    closeAddUnitModal();
+                    location.reload();
+                } else {
+                    showToast('Error: ' + (result.error || 'Failed to add unit'));
+                }
+            } catch (error) {
+                showToast('Error adding unit');
+                console.error('Add unit error:', error);
+            }
+        }
+
+        // Delete Unit
+        let pendingDeleteUnitId = null;
+
+        function deleteUnit(id, unitNumber) {
+            pendingDeleteUnitId = id;
+            document.getElementById('delete-unit-number').textContent = unitNumber;
+            document.getElementById('delete-unit-modal').classList.add('active');
+        }
+
+        function closeDeleteUnitModal() {
+            document.getElementById('delete-unit-modal').classList.remove('active');
+            pendingDeleteUnitId = null;
+        }
+
+        async function confirmDeleteUnit() {
+            if (!pendingDeleteUnitId) return;
+
+            try {
+                const response = await fetch(`/api/project/${projectId}/unit/${pendingDeleteUnitId}`, {
+                    method: 'DELETE'
+                });
+                const result = await response.json();
+
+                closeDeleteUnitModal();
+
+                if (result.success) {
+                    showToast('Unit deleted');
+                    location.reload();
+                } else {
+                    showToast('Failed to delete unit');
+                }
+            } catch (error) {
+                showToast('Error deleting unit');
+                console.error('Delete unit error:', error);
+            }
+        }
+
+        // =====================
+        // AI Chat Functions
+        // =====================
+        let aiChatOpen = false;
+
+        function toggleAIChat() {
+            aiChatOpen = !aiChatOpen;
+            const panel = document.getElementById('ai-chat-panel');
+            const iconOpen = document.getElementById('ai-chat-icon-open');
+            const iconClose = document.getElementById('ai-chat-icon-close');
+
+            if (aiChatOpen) {
+                panel.classList.remove('hidden');
+                iconOpen.classList.add('hidden');
+                iconClose.classList.remove('hidden');
+                document.getElementById('ai-chat-input').focus();
+            } else {
+                panel.classList.add('hidden');
+                iconOpen.classList.remove('hidden');
+                iconClose.classList.add('hidden');
+            }
+        }
+
+        function addChatMessage(content, isUser = false, isError = false) {
+            const messagesDiv = document.getElementById('ai-chat-messages');
+            const msgDiv = document.createElement('div');
+
+            if (isUser) {
+                msgDiv.className = 'flex justify-end';
+                msgDiv.innerHTML = `<div class="bg-blue-600 text-white rounded-lg px-3 py-2 text-sm max-w-[80%]">${escapeHtml(content)}</div>`;
+            } else if (isError) {
+                msgDiv.className = 'flex justify-start';
+                msgDiv.innerHTML = `<div class="bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg px-3 py-2 text-sm max-w-[80%]">${escapeHtml(content)}</div>`;
+            } else {
+                msgDiv.className = 'flex justify-start';
+                msgDiv.innerHTML = `<div class="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-2 text-sm max-w-[80%] whitespace-pre-wrap">${escapeHtml(content)}</div>`;
+            }
+
+            messagesDiv.appendChild(msgDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function addTypingIndicator() {
+            const messagesDiv = document.getElementById('ai-chat-messages');
+            const typingDiv = document.createElement('div');
+            typingDiv.id = 'ai-typing-indicator';
+            typingDiv.className = 'flex justify-start';
+            typingDiv.innerHTML = `
+                <div class="bg-gray-100 dark:bg-gray-700 rounded-lg px-4 py-2 text-sm">
+                    <div class="flex space-x-1">
+                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0ms;"></div>
+                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 150ms;"></div>
+                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 300ms;"></div>
+                    </div>
+                </div>
+            `;
+            messagesDiv.appendChild(typingDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const indicator = document.getElementById('ai-typing-indicator');
+            if (indicator) indicator.remove();
+        }
+
+        async function sendAIMessage(e) {
+            e.preventDefault();
+            const input = document.getElementById('ai-chat-input');
+            const sendBtn = document.getElementById('ai-send-btn');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            // Add user message to chat
+            addChatMessage(message, true);
+            input.value = '';
+
+            // Disable input while processing
+            input.disabled = true;
+            sendBtn.disabled = true;
+            addTypingIndicator();
+
+            try {
+                const response = await fetch('/api/ai/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: message,
+                        context: {
+                            page: 'complex',
+                            project_id: projectId
+                        }
+                    })
+                });
+
+                const result = await response.json();
+                removeTypingIndicator();
+
+                if (result.success) {
+                    addChatMessage(result.message);
+
+                    // If action was taken, refresh the page
+                    if (result.needs_refresh) {
+                        setTimeout(() => {
+                            showToast('Updating...');
+                            location.reload();
+                        }, 1000);
+                    }
+                } else {
+                    addChatMessage(result.message || 'Something went wrong', false, true);
+                }
+            } catch (error) {
+                removeTypingIndicator();
+                addChatMessage('Could not connect to AI assistant. Is Ollama running?', false, true);
+                console.error('AI chat error:', error);
+            } finally {
+                input.disabled = false;
+                sendBtn.disabled = false;
+                input.focus();
+            }
+        }
+
+        // Load chat state from localStorage
+        function loadChatState() {
+            const savedOpen = localStorage.getItem('aiChatOpen') === 'true';
+            if (savedOpen) {
+                toggleAIChat();
+            }
+        }
+
+        // Save chat state when toggling
+        const originalToggle = toggleAIChat;
+        toggleAIChat = function() {
+            originalToggle();
+            localStorage.setItem('aiChatOpen', aiChatOpen);
+        };
+
+        // Initialize
+        loadChatState();
+    </script>
+</body>
+</html>

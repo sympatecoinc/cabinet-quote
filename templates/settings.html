@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Cabinet Quoter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { colors: { primary: '#3b82f6', secondary: '#64748b' } } }
+        }
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
+    <style>
+        .modal { display: none; position: fixed; inset: 0; z-index: 50; }
+        .modal.active { display: flex; }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 min-h-screen transition-colors">
+    <!-- Navigation -->
+    <nav class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 transition-colors">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between h-14">
+                <div class="flex items-center space-x-6">
+                    <a href="/" class="text-lg font-bold text-gray-900 dark:text-white">Cabinet Quoter</a>
+                    <div class="flex space-x-1">
+                        <a href="/" class="nav-btn px-3 py-1.5 rounded text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Overview</a>
+                        <a href="/standard-cabinets" class="nav-btn px-3 py-1.5 rounded text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Standards</a>
+                        <a href="/templates" class="nav-btn px-3 py-1.5 rounded text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Templates</a>
+                        <a href="/config" class="nav-btn px-3 py-1.5 rounded text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Configuration</a>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <a href="/settings" class="p-2 rounded bg-gray-100 dark:bg-gray-700" title="Settings">
+                        <svg class="w-5 h-5 text-gray-900 dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-6">
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Settings</h1>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Manage pricing rules and admin settings</p>
+            </div>
+        </div>
+
+        <!-- Pricing Rules Section -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+            <div class="p-6 border-b dark:border-gray-700">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Pricing Rules</h2>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Create markup presets that users can apply in project configuration</p>
+                    </div>
+                    <button onclick="showAddRuleModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">
+                        + Add Pricing Rule
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-6">
+                {% if pricing_rules %}
+                <div class="space-y-4">
+                    {% for rule in pricing_rules %}
+                    <div class="border dark:border-gray-700 rounded-lg p-4">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="font-medium text-gray-900 dark:text-white">{{ rule.name }}</h3>
+                                {% if rule.description %}
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ rule.description }}</p>
+                                {% endif %}
+                            </div>
+                            <div class="flex space-x-2">
+                                <button onclick="editRule({{ rule.id }})" class="px-3 py-1.5 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded">
+                                    Edit
+                                </button>
+                                <button onclick="deleteRule({{ rule.id }}, '{{ rule.name }}')" class="px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded">
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mt-3 grid grid-cols-4 gap-4 text-sm">
+                            <div>
+                                <span class="text-gray-500 dark:text-gray-400">Primary Substrate:</span>
+                                <span class="font-medium text-gray-900 dark:text-white ml-1">{{ (rule.markup_primary * 100)|int }}%</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500 dark:text-gray-400">Back Panel:</span>
+                                <span class="font-medium text-gray-900 dark:text-white ml-1">{{ (rule.markup_back * 100)|int }}%</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500 dark:text-gray-400">Drawer Material:</span>
+                                <span class="font-medium text-gray-900 dark:text-white ml-1">{{ (rule.markup_drawer_material * 100)|int }}%</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500 dark:text-gray-400">Door/Drawer Fronts:</span>
+                                <span class="font-medium text-gray-900 dark:text-white ml-1">{{ (rule.markup_door_drawer * 100)|int }}%</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500 dark:text-gray-400">Hardware:</span>
+                                <span class="font-medium text-gray-900 dark:text-white ml-1">{{ (rule.markup_hardware * 100)|int }}%</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500 dark:text-gray-400">Edgebanding:</span>
+                                <span class="font-medium text-gray-900 dark:text-white ml-1">{{ (rule.markup_edgebanding * 100)|int }}%</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500 dark:text-gray-400">Material Buffer:</span>
+                                <span class="font-medium text-gray-900 dark:text-white ml-1">{{ rule.material_usage_buffer|int }}%</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-1">No pricing rules yet</h3>
+                    <p class="text-gray-500 dark:text-gray-400 mb-4">Create pricing rule presets for users to apply in project configuration.</p>
+                    <button onclick="showAddRuleModal()" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">
+                        + Add Pricing Rule
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- My Company Information (Global - saved to database) -->
+        <div class="mt-6 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">My Company Information</h2>
+                <span class="text-xs bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 px-2 py-1 rounded">Saved to Database</span>
+            </div>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Your company details appear on all PDF quotes.</p>
+            <div class="grid grid-cols-2 gap-6">
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Company Name</label>
+                        <input type="text" id="company-name" class="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white" placeholder="Your Company Name">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Phone</label>
+                        <input type="text" id="company-phone" class="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white" placeholder="(555) 123-4567">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                        <input type="text" id="company-email" class="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white" placeholder="info@yourcompany.com">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Address</label>
+                    <textarea id="company-address" rows="5" class="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white" placeholder="123 Main Street&#10;City, State 12345"></textarea>
+                </div>
+            </div>
+            <div class="mt-4 flex justify-end">
+                <button onclick="saveCompanyInfo()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">
+                    Save Company Info
+                </button>
+            </div>
+        </div>
+
+        <!-- Appearance Settings -->
+        <div class="mt-6 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Appearance</h2>
+            <div class="space-y-4">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Dark Mode</label>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Use dark theme for the interface</p>
+                    </div>
+                    <button id="dark-mode-toggle" onclick="toggleDarkMode()" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none bg-gray-200 dark:bg-blue-600">
+                        <span id="dark-mode-knob" class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out translate-x-0 dark:translate-x-5"></span>
+                    </button>
+                </div>
+                <div class="flex justify-between items-center">
+                    <div>
+                        <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Show Quick Add Form</label>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Display the quick add items form on the overview page</p>
+                    </div>
+                    <button id="quick-add-toggle" onclick="toggleQuickAdd()" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none">
+                        <span id="quick-add-knob" class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+                    </button>
+                </div>
+                <div class="flex justify-between items-center">
+                    <div>
+                        <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Show Project Totals</label>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Display the cost summary cards on the overview page</p>
+                    </div>
+                    <button id="totals-toggle" onclick="toggleTotals()" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none">
+                        <span id="totals-knob" class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Project Management -->
+        <div class="mt-6 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Project</h2>
+            <div class="flex justify-between items-center">
+                <div>
+                    {% if current_project %}
+                    <p class="text-sm text-gray-700 dark:text-gray-300">
+                        Current: <span class="font-medium text-gray-900 dark:text-white">{{ current_project.name }}</span>
+                        {% if current_project.project_type == 'apartment_complex' %}
+                        <span class="ml-2 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200 px-2 py-0.5 rounded-full">Complex</span>
+                        {% endif %}
+                    </p>
+                    {% else %}
+                    <p class="text-sm text-yellow-600 dark:text-yellow-400">No project loaded</p>
+                    {% endif %}
+                </div>
+                <button onclick="openProjectModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">
+                    Change Project
+                </button>
+            </div>
+        </div>
+
+        <!-- Data Migration Section -->
+        <div class="mt-6 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Data Migration</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Mark all existing templates and standard cabinets as global (one-time migration).</p>
+            <div class="flex space-x-4">
+                <button onclick="migrateTemplates()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium">
+                    Mark Templates as Global
+                </button>
+                <button onclick="migrateStandardCabinets()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium">
+                    Mark Standard Cabinets as Global
+                </button>
+            </div>
+        </div>
+
+        <!-- Calculation Equations Reference -->
+        <div class="mt-6">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+                <button onclick="toggleEquations()" class="w-full px-6 py-4 flex justify-between items-center text-left">
+                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Calculation Equations Reference</h2>
+                    <svg id="equations-chevron" class="w-5 h-5 text-gray-500 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+                <div id="equations-section" class="hidden px-6 pb-6">
+                    <!-- Variables -->
+                    <div class="mb-6">
+                        <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Variables Used</h3>
+                        <div class="grid grid-cols-2 gap-2 text-sm bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                            <div class="text-gray-700 dark:text-gray-200"><span class="text-blue-600 dark:text-blue-400 font-semibold">W</span> = Cabinet Width</div>
+                            <div class="text-gray-700 dark:text-gray-200"><span class="text-blue-600 dark:text-blue-400 font-semibold">H</span> = Cabinet Height</div>
+                            <div class="text-gray-700 dark:text-gray-200"><span class="text-blue-600 dark:text-blue-400 font-semibold">D</span> = Cabinet Depth</div>
+                            <div class="text-gray-700 dark:text-gray-200"><span class="text-blue-600 dark:text-blue-400 font-semibold">PT</span> = Primary Thickness</div>
+                            <div class="text-gray-700 dark:text-gray-200"><span class="text-blue-600 dark:text-blue-400 font-semibold">BT</span> = Back Thickness</div>
+                            <div class="text-gray-700 dark:text-gray-200"><span class="text-blue-600 dark:text-blue-400 font-semibold">TK</span> = Toe Kick Height</div>
+                            <div class="text-gray-700 dark:text-gray-200"><span class="text-blue-600 dark:text-blue-400 font-semibold">TKI</span> = Toe Kick Inset</div>
+                            <div class="text-gray-700 dark:text-gray-200"><span class="text-blue-600 dark:text-blue-400 font-semibold">DC</span> = Door Clearance</div>
+                            <div class="text-gray-700 dark:text-gray-200"><span class="text-blue-600 dark:text-blue-400 font-semibold">DHA</span> = Door Height Adj</div>
+                            <div class="text-gray-700 dark:text-gray-200"><span class="text-blue-600 dark:text-blue-400 font-semibold">SS</span> = Shelf Setback</div>
+                            <div class="text-gray-700 dark:text-gray-200"><span class="text-blue-600 dark:text-blue-400 font-semibold">DFH</span> = Drawer Front Height</div>
+                            <div class="text-gray-700 dark:text-gray-200"><span class="text-blue-600 dark:text-blue-400 font-semibold">NW</span> = Nailer Width</div>
+                        </div>
+                    </div>
+
+                    <!-- Wall Cabinets -->
+                    <div class="mb-5">
+                        <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Wall Cabinets</h3>
+                        <div class="bg-white dark:bg-gray-700 rounded-lg overflow-hidden">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50 dark:bg-gray-600">
+                                    <tr>
+                                        <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Component</th>
+                                        <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Width/Length</th>
+                                        <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Height/Depth</th>
+                                        <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Material</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100 dark:divide-gray-600">
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Side Panel (x2)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">D</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">H</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Primary</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Back Panel</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">W - (PT x 2)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">H - (PT x 2)</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Back</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Bottom</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">W - (PT x 2)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">D - BT</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Primary</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Top</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">W - (PT x 2)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">D - BT</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Primary</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Shelf</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">W - (PT x 2)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">D - BT - SS</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Primary</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Door (x1)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">W - (DC x 2)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">H - DHA</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Fronts</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Door (x2+)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">(W - DCx2 - DCx(n-1)) / n</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">H - DHA</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Fronts</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Base Cabinets -->
+                    <div class="mb-5">
+                        <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Base Cabinets</h3>
+                        <div class="bg-white dark:bg-gray-700 rounded-lg overflow-hidden">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50 dark:bg-gray-600">
+                                    <tr>
+                                        <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Component</th>
+                                        <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Width/Length</th>
+                                        <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Height/Depth</th>
+                                        <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Material</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100 dark:divide-gray-600">
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Side Panel (x2)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">D</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">H</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Primary</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Back Panel</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">W - (PT x 2) - 0.0788</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">H - TK - (PT x 2) - 0.0788</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Back</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Bottom</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">W - (PT x 2)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">D - BT</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Primary</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Toe Kick</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">W - (PT x 2)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">TK</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Primary</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Nailer</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">W - (PT x 2)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">NW</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Primary</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Stretcher</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">W - (PT x 2)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">Stretcher Width</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Primary</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Shelf</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">W - (PT x 2)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">D - BT - SS</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Primary</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Door (no drawer)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">(W - DCx2 - DCx(n-1)) / n</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">H - TK - DHA</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Fronts</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Door (with drawer)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">(W - DCx2 - DCx(n-1)) / n</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">H - TK - DHA - DFH</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Fronts</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Drawer Cabinets -->
+                    <div class="mb-5">
+                        <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Drawer Cabinets</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">AXIAL Drawer System includes slides and sides - only fronts, backs, and bottoms need material</p>
+                        <div class="bg-white dark:bg-gray-700 rounded-lg overflow-hidden">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50 dark:bg-gray-600">
+                                    <tr>
+                                        <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Component</th>
+                                        <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Width/Length</th>
+                                        <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Height/Depth</th>
+                                        <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Material</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100 dark:divide-gray-600">
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Side Panel (x2)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">D</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">H</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Primary</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Back Panel</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">W - (PT x 2)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">H - TK - PT</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Back</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Bottom</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">W - (PT x 2)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">D - BT</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Primary</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Toe Kick</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">W - (PT x 2)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">TK</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Primary</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Nailer</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">W - (PT x 2)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">NW</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Primary</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Drawer Front (xn)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">W - (DC x 2)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">(H - TK) / n</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Fronts</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Drawer Back (xn)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">W - (PT x 2) - 1.0</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">3.937" (fixed)</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Drawer</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Drawer Bottom (xn)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">W - (PT x 2) - 1.0</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">D - 2.0</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Drawer</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Tall Cabinets -->
+                    <div class="mb-5">
+                        <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Tall Cabinets</h3>
+                        <div class="bg-white dark:bg-gray-700 rounded-lg overflow-hidden">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50 dark:bg-gray-600">
+                                    <tr>
+                                        <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Component</th>
+                                        <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Width/Length</th>
+                                        <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Height/Depth</th>
+                                        <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Material</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100 dark:divide-gray-600">
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Side Panel (x2)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">D</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">H</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Primary</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Back Panel</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">W - (PT x 2) - 0.0788</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">H - TK - (PT x 2) - 0.0788</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Primary</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Bottom</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">W - (PT x 2)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">D - BT</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Primary</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Top</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">W - (PT x 2)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">D - BT</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Primary</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Shelf</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">W - (PT x 2)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">D - BT - SS</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Primary</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Door</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">(W - DCx2 - DCx(n-1)) / n</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">H - DHA</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Fronts</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Sink Base Cabinets -->
+                    <div class="mb-5">
+                        <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Sink Base Cabinets</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Similar to Base Cabinets but without stretcher - typically wider (30-36")</p>
+                        <div class="bg-white dark:bg-gray-700 rounded-lg overflow-hidden">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50 dark:bg-gray-600">
+                                    <tr>
+                                        <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Component</th>
+                                        <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Width/Length</th>
+                                        <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Height/Depth</th>
+                                        <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Material</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100 dark:divide-gray-600">
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Side Panel (x2)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">D</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">H</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Primary</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Back Panel</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">W - (PT x 2) - 0.0788</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">H - TK - (PT x 2) - 0.0788</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Back</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Bottom</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">W - (PT x 2)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">D - BT</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Primary</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Toe Kick</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">W - (PT x 2)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">TK</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Primary</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Nailer</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">W - (PT x 2)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">NW</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Primary</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Door</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">(W - DCx2 - DCx(n-1)) / n</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">H - TK - DHA</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Fronts</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Pull Out Trashcan -->
+                    <div class="mb-5">
+                        <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Pull Out Trashcan</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Base cabinet style without doors - typically 15-18" wide</p>
+                        <div class="bg-white dark:bg-gray-700 rounded-lg overflow-hidden">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50 dark:bg-gray-600">
+                                    <tr>
+                                        <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Component</th>
+                                        <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Width/Length</th>
+                                        <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Height/Depth</th>
+                                        <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Material</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100 dark:divide-gray-600">
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Side Panel (x2)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">D</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">H</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Primary</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Back Panel</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">W - (PT x 2) - 0.0788</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">H - TK - (PT x 2) - 0.0788</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Back</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Bottom</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">W - (PT x 2)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">D - BT</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Primary</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Toe Kick</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">W - (PT x 2)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">TK</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Primary</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Nailer</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">W - (PT x 2)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">NW</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Primary</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Stretcher</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">W - (PT x 2)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">Stretcher Width</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Primary</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Appliance Panel -->
+                    <div class="mb-5">
+                        <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Appliance Panel</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Decorative panels to cover appliance sides - 1, 2, or 3 sided configurations</p>
+                        <div class="bg-white dark:bg-gray-700 rounded-lg overflow-hidden">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50 dark:bg-gray-600">
+                                    <tr>
+                                        <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Component</th>
+                                        <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Width/Length</th>
+                                        <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Height/Depth</th>
+                                        <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100 dark:divide-gray-600">
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Panel 1 (1+ sides)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">D</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">H</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">Always present, 4 edges banded</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Panel 2 (2+ sides)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">W</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">H</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">L-shape: front panel</td></tr>
+                                    <tr><td class="px-3 py-2 text-gray-900 dark:text-white">Panel 3 (3 sides)</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">D</td><td class="px-3 py-2 text-blue-600 dark:text-blue-400 font-mono text-xs">H</td><td class="px-3 py-2 text-gray-500 dark:text-gray-400">U-shape: opposite side</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Square Feet Calculation -->
+                    <div class="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                        <h4 class="font-semibold text-gray-900 dark:text-white mb-1">Square Feet Calculation</h4>
+                        <p class="text-sm text-gray-600 dark:text-gray-300 font-mono">SqFt = (Length x Height) / 144</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Project Modal -->
+    <div id="project-modal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/50" onclick="closeProjectModal()"></div>
+        <div class="absolute inset-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-lg bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="flex justify-between items-center px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Projects</h2>
+                <button onclick="closeProjectModal()" class="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+                    <svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-6">
+                <!-- Create New Project -->
+                <div class="mb-6">
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Create New Project</h3>
+                    <div class="mb-3">
+                        <div class="flex space-x-4">
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" name="modal-project-type" value="standard" checked class="mr-2 text-blue-600">
+                                <span class="text-sm text-gray-700 dark:text-gray-300">Standard Quote</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" name="modal-project-type" value="apartment_complex" class="mr-2 text-blue-600">
+                                <span class="text-sm text-gray-700 dark:text-gray-300">Multi Unit</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2">
+                        <input type="text" id="modal-project-name" class="flex-1 p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 text-sm" placeholder="Enter project name...">
+                        <button onclick="createProjectFromModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium whitespace-nowrap">
+                            Create
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Saved Projects -->
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Saved Projects</h3>
+                    <div id="modal-projects-list" class="space-y-2">
+                        <div class="text-center py-4 text-gray-500 dark:text-gray-400 text-sm">Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Pricing Rule Modal -->
+    <div id="rule-modal" class="modal items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg mx-4">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 id="modal-title" class="text-xl font-bold text-gray-900 dark:text-white">Add Pricing Rule</h2>
+                    <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <form id="rule-form" onsubmit="saveRule(event)">
+                    <input type="hidden" id="rule-id" value="">
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name *</label>
+                        <input type="text" id="rule-name" required class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" placeholder="e.g., Standard Markup">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                        <input type="text" id="rule-desc" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" placeholder="e.g., Standard markups for residential projects">
+                    </div>
+
+                    <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Markup Percentages</h3>
+
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Primary Substrate</label>
+                            <div class="flex items-center">
+                                <input type="number" id="rule-markup-primary" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-right" step="1" value="0">
+                                <span class="text-gray-500 dark:text-gray-400 ml-1">%</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Back Panel</label>
+                            <div class="flex items-center">
+                                <input type="number" id="rule-markup-back" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-right" step="1" value="0">
+                                <span class="text-gray-500 dark:text-gray-400 ml-1">%</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Drawer Material</label>
+                            <div class="flex items-center">
+                                <input type="number" id="rule-markup-drawer" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-right" step="1" value="0">
+                                <span class="text-gray-500 dark:text-gray-400 ml-1">%</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Door/Drawer Fronts</label>
+                            <div class="flex items-center">
+                                <input type="number" id="rule-markup-fronts" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-right" step="1" value="0">
+                                <span class="text-gray-500 dark:text-gray-400 ml-1">%</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Hardware</label>
+                            <div class="flex items-center">
+                                <input type="number" id="rule-markup-hardware" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-right" step="1" value="0">
+                                <span class="text-gray-500 dark:text-gray-400 ml-1">%</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Edgebanding</label>
+                            <div class="flex items-center">
+                                <input type="number" id="rule-markup-edgebanding" class="w-full p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-right" step="1" value="0">
+                                <span class="text-gray-500 dark:text-gray-400 ml-1">%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4 pt-3 border-t dark:border-gray-600">
+                        <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Material Usage Buffer</label>
+                        <div class="flex items-center">
+                            <input type="number" id="rule-buffer" class="w-24 p-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-right" step="1" min="0" value="0">
+                            <span class="text-gray-500 dark:text-gray-400 ml-1">%</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">(extra material for waste)</span>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end space-x-3 pt-4 border-t dark:border-gray-600">
+                        <button type="button" onclick="closeModal()" class="px-4 py-2 border dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            Save Rule
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" class="modal items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-sm mx-4 p-6">
+            <div class="flex items-center mb-4">
+                <div class="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mr-3">
+                    <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Delete Pricing Rule</h3>
+            </div>
+            <p class="text-gray-600 dark:text-gray-300 mb-2">Are you sure you want to delete "<span id="delete-rule-name"></span>"?</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">This action cannot be undone.</p>
+            <div class="flex justify-end space-x-3">
+                <button onclick="closeDeleteModal()" class="px-4 py-2 border dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    Cancel
+                </button>
+                <button onclick="confirmDelete()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 dark:bg-gray-700 text-white px-4 py-2 rounded-lg shadow-lg hidden"></div>
+
+    <script>
+        // Equations section toggle
+        function toggleEquations() {
+            const section = document.getElementById('equations-section');
+            const chevron = document.getElementById('equations-chevron');
+            section.classList.toggle('hidden');
+            chevron.classList.toggle('rotate-180');
+        }
+
+        function showToast(message, duration = 3000) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), duration);
+        }
+
+        // Add/Edit Modal
+        function showAddRuleModal() {
+            document.getElementById('rule-id').value = '';
+            document.getElementById('modal-title').textContent = 'Add Pricing Rule';
+            document.getElementById('rule-form').reset();
+            document.getElementById('rule-modal').classList.add('active');
+        }
+
+        async function editRule(id) {
+            try {
+                const response = await fetch(`/api/pricing-rule/${id}`);
+                const rule = await response.json();
+
+                if (rule.error) {
+                    showToast('Pricing rule not found');
+                    return;
+                }
+
+                document.getElementById('rule-id').value = rule.id;
+                document.getElementById('modal-title').textContent = 'Edit Pricing Rule';
+                document.getElementById('rule-name').value = rule.name;
+                document.getElementById('rule-desc').value = rule.description || '';
+                document.getElementById('rule-markup-primary').value = Math.round(rule.markup_primary * 100);
+                document.getElementById('rule-markup-back').value = Math.round(rule.markup_back * 100);
+                document.getElementById('rule-markup-drawer').value = Math.round(rule.markup_drawer_material * 100);
+                document.getElementById('rule-markup-fronts').value = Math.round(rule.markup_door_drawer * 100);
+                document.getElementById('rule-markup-hardware').value = Math.round(rule.markup_hardware * 100);
+                document.getElementById('rule-markup-edgebanding').value = Math.round(rule.markup_edgebanding * 100);
+                document.getElementById('rule-buffer').value = rule.material_usage_buffer || 0;
+
+                document.getElementById('rule-modal').classList.add('active');
+            } catch (error) {
+                showToast('Error loading pricing rule');
+                console.error(error);
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('rule-modal').classList.remove('active');
+        }
+
+        async function saveRule(e) {
+            e.preventDefault();
+
+            const id = document.getElementById('rule-id').value;
+            const data = {
+                name: document.getElementById('rule-name').value,
+                description: document.getElementById('rule-desc').value,
+                markup_primary: parseFloat(document.getElementById('rule-markup-primary').value) / 100,
+                markup_back: parseFloat(document.getElementById('rule-markup-back').value) / 100,
+                markup_drawer_material: parseFloat(document.getElementById('rule-markup-drawer').value) / 100,
+                markup_door_drawer: parseFloat(document.getElementById('rule-markup-fronts').value) / 100,
+                markup_hardware: parseFloat(document.getElementById('rule-markup-hardware').value) / 100,
+                markup_edgebanding: parseFloat(document.getElementById('rule-markup-edgebanding').value) / 100,
+                material_usage_buffer: parseFloat(document.getElementById('rule-buffer').value)
+            };
+
+            try {
+                const url = id ? `/api/pricing-rule/${id}` : '/api/pricing-rule';
+                const method = id ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                if (result.success || result.id) {
+                    showToast(id ? 'Pricing rule updated!' : 'Pricing rule created!');
+                    closeModal();
+                    location.reload();
+                } else {
+                    showToast('Error: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                showToast('Error saving pricing rule');
+                console.error(error);
+            }
+        }
+
+        // Delete Modal
+        let pendingDeleteId = null;
+
+        function deleteRule(id, name) {
+            pendingDeleteId = id;
+            document.getElementById('delete-rule-name').textContent = name;
+            document.getElementById('delete-modal').classList.add('active');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('delete-modal').classList.remove('active');
+            pendingDeleteId = null;
+        }
+
+        async function confirmDelete() {
+            if (!pendingDeleteId) return;
+
+            try {
+                const response = await fetch(`/api/pricing-rule/${pendingDeleteId}`, {
+                    method: 'DELETE'
+                });
+                const result = await response.json();
+
+                closeDeleteModal();
+
+                if (result.success) {
+                    showToast('Pricing rule deleted');
+                    location.reload();
+                } else {
+                    showToast('Failed to delete pricing rule');
+                }
+            } catch (error) {
+                showToast('Error deleting pricing rule');
+                console.error(error);
+            }
+        }
+
+        // Migration functions
+        async function migrateTemplates() {
+            try {
+                const response = await fetch('/api/templates/migrate-global', { method: 'POST' });
+                const result = await response.json();
+                if (result.success) {
+                    showToast('All templates marked as global!');
+                } else {
+                    showToast('Migration failed');
+                }
+            } catch (error) {
+                showToast('Error during migration');
+                console.error(error);
+            }
+        }
+
+        async function migrateStandardCabinets() {
+            try {
+                const response = await fetch('/api/standard-cabinets/migrate-global', { method: 'POST' });
+                const result = await response.json();
+                if (result.success) {
+                    showToast('All standard cabinets marked as global!');
+                } else {
+                    showToast('Migration failed');
+                }
+            } catch (error) {
+                showToast('Error during migration');
+                console.error(error);
+            }
+        }
+
+        // Company Info Functions
+        async function loadCompanyInfo() {
+            try {
+                const response = await fetch('/api/company-settings');
+                const data = await response.json();
+                document.getElementById('company-name').value = data.company_name || '';
+                document.getElementById('company-address').value = data.company_address || '';
+                document.getElementById('company-phone').value = data.company_phone || '';
+                document.getElementById('company-email').value = data.company_email || '';
+            } catch (error) {
+                console.error('Error loading company info:', error);
+            }
+        }
+
+        async function saveCompanyInfo() {
+            try {
+                const response = await fetch('/api/company-settings', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        company_name: document.getElementById('company-name').value,
+                        company_address: document.getElementById('company-address').value,
+                        company_phone: document.getElementById('company-phone').value,
+                        company_email: document.getElementById('company-email').value
+                    })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Company information saved!');
+                } else {
+                    showToast('Failed to save company information');
+                }
+            } catch (error) {
+                showToast('Error saving company information');
+                console.error(error);
+            }
+        }
+
+        // Dark Mode Toggle
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            const isDark = html.classList.toggle('dark');
+            localStorage.setItem('darkMode', isDark);
+            updateToggleState('dark-mode-toggle', isDark);
+        }
+
+        // Quick Add Toggle
+        function toggleQuickAdd() {
+            const isShown = localStorage.getItem('quickAddHidden') !== 'true';
+            const newState = !isShown;
+            localStorage.setItem('quickAddHidden', !newState);
+            updateToggleState('quick-add-toggle', newState);
+        }
+
+        // Totals Toggle
+        function toggleTotals() {
+            const isShown = localStorage.getItem('totalsHidden') !== 'true';
+            const newState = !isShown;
+            localStorage.setItem('totalsHidden', !newState);
+            updateToggleState('totals-toggle', newState);
+        }
+
+        function updateToggleState(toggleId, isActive) {
+            const toggle = document.getElementById(toggleId);
+            const knob = document.getElementById(toggleId.replace('toggle', 'knob'));
+            if (toggle && knob) {
+                if (isActive) {
+                    toggle.classList.remove('bg-gray-200');
+                    toggle.classList.add('bg-blue-600');
+                    knob.classList.remove('translate-x-0');
+                    knob.classList.add('translate-x-5');
+                } else {
+                    toggle.classList.remove('bg-blue-600');
+                    toggle.classList.add('bg-gray-200');
+                    knob.classList.remove('translate-x-5');
+                    knob.classList.add('translate-x-0');
+                }
+            }
+        }
+
+        // Initialize toggle states
+        function initToggles() {
+            const isDark = localStorage.getItem('darkMode') === 'true';
+            const quickAddShown = localStorage.getItem('quickAddHidden') !== 'true';
+            const totalsShown = localStorage.getItem('totalsHidden') !== 'true';
+            updateToggleState('dark-mode-toggle', isDark);
+            updateToggleState('quick-add-toggle', quickAddShown);
+            updateToggleState('totals-toggle', totalsShown);
+        }
+
+        // Project Modal Functions
+        function openProjectModal() {
+            document.getElementById('project-modal').classList.remove('hidden');
+            fetchProjects();
+        }
+
+        function closeProjectModal() {
+            document.getElementById('project-modal').classList.add('hidden');
+        }
+
+        async function fetchProjects() {
+            const listEl = document.getElementById('modal-projects-list');
+            listEl.innerHTML = '<div class="text-center py-4 text-gray-500 dark:text-gray-400 text-sm">Loading...</div>';
+
+            try {
+                const response = await fetch('/api/projects');
+                const projects = await response.json();
+
+                if (!projects || projects.length === 0) {
+                    listEl.innerHTML = '<div class="text-center py-4 text-gray-500 dark:text-gray-400 text-sm">No saved projects yet.</div>';
+                    return;
+                }
+
+                const currentId = {{ current_project.id if current_project else 'null' }};
+
+                listEl.innerHTML = projects.map(project => {
+                    const isCurrent = project.id === currentId;
+                    const isComplex = project.project_type === 'apartment_complex';
+                    const typeBadge = isComplex
+                        ? '<span class="text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200 px-2 py-0.5 rounded-full">Complex</span>'
+                        : '<span class="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded-full">Standard</span>';
+
+                    return `
+                        <div class="p-3 rounded-lg border ${isCurrent ? 'border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30' : 'border-gray-200 dark:border-gray-700'} flex justify-between items-center">
+                            <div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="font-medium text-gray-900 dark:text-white text-sm">${project.name}</span>
+                                    ${typeBadge}
+                                </div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Updated: ${project.updated_at ? project.updated_at.slice(0, 10) : 'N/A'}</p>
+                            </div>
+                            <div class="flex space-x-2">
+                                ${isCurrent
+                                    ? '<span class="px-2 py-1 bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200 rounded text-xs font-medium">Current</span>'
+                                    : `<button onclick="loadProject(${project.id}, '${project.project_type || 'standard'}')" class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-xs font-medium">${isComplex ? 'Open' : 'Load'}</button>`
+                                }
+                                <button onclick="deleteProject(${project.id}, '${project.name.replace(/'/g, "\\'")}')" class="px-2 py-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded text-xs font-medium">Delete</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) {
+                listEl.innerHTML = '<div class="text-center py-4 text-red-500 text-sm">Failed to load projects</div>';
+            }
+        }
+
+        async function createProjectFromModal() {
+            const name = document.getElementById('modal-project-name').value.trim();
+            if (!name) {
+                showToast('Please enter a project name');
+                return;
+            }
+
+            const projectType = document.querySelector('input[name="modal-project-type"]:checked').value;
+
+            try {
+                if (projectType === 'apartment_complex') {
+                    const response = await fetch('/api/project/apartment-complex', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        showToast('Multi unit project created!');
+                        window.location.href = `/complex/${result.id}`;
+                    } else {
+                        showToast('Error: ' + (result.error || 'Failed to create complex'));
+                    }
+                } else {
+                    const response = await fetch('/api/project', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        showToast('Project created!');
+                        window.location.href = '/';
+                    } else {
+                        showToast('Error: ' + (result.error || 'Failed to create project'));
+                    }
+                }
+            } catch (err) {
+                showToast('Error creating project');
+            }
+        }
+
+        async function loadProject(id, projectType) {
+            if (projectType === 'apartment_complex') {
+                window.location.href = `/complex/${id}`;
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/project/${id}`);
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Project loaded!');
+                    window.location.href = '/';
+                } else {
+                    showToast('Error: ' + (result.error || 'Failed to load project'));
+                }
+            } catch (err) {
+                showToast('Error loading project');
+            }
+        }
+
+        async function deleteProject(id, name) {
+            if (!confirm(`Delete project "${name}"? This cannot be undone.`)) return;
+
+            try {
+                const response = await fetch(`/api/project/${id}`, { method: 'DELETE' });
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Project deleted');
+                    fetchProjects();
+                    const currentId = {{ current_project.id if current_project else 'null' }};
+                    if (id === currentId) {
+                        window.location.reload();
+                    }
+                } else {
+                    showToast('Error: Failed to delete project');
+                }
+            } catch (err) {
+                showToast('Error deleting project');
+            }
+        }
+
+        // Initialize on page load
+        loadCompanyInfo();
+        initToggles();
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !document.getElementById('project-modal').classList.contains('hidden')) {
+                closeProjectModal();
+            }
+        });
+
+        // Enter key to create project in modal
+        document.getElementById('modal-project-name').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') createProjectFromModal();
+        });
+    </script>
+</body>
+</html>
